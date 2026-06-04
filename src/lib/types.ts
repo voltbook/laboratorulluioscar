@@ -2,11 +2,14 @@ export type Difficulty = "Începător" | "Mediu" | "Avansat";
 
 export type ProjectPart = {
   name: string;
+  category?: string;
+  subtitle?: string;
   quantity: number;
   estimatedPriceRon: number;
   supplier: string;
   link: string;
   notes: string;
+  image?: string;
 };
 
 export type ProjectCodeFile = {
