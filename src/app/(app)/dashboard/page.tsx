@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Activity, Bot, Code2, Cpu, FlaskConical, Gamepad2, Star, Trophy, Zap } from "lucide-react";
+import { Activity, Code2, Cpu, FlaskConical, Gamepad2, Star, Trophy, Zap } from "lucide-react";
 import { GameCard, ProjectGeneratorCard } from "@/components/lab-platform";
 import { demoProjects, getTrendingProjects } from "@/lib/demo-data";
 import { ProjectCard } from "@/components/project-card";
@@ -34,9 +34,9 @@ export default function DashboardPage() {
       <section className="mb-8">
         <h2 className="mb-4 font-mono text-2xl text-white">Continue Playing</h2>
         <div className="grid gap-4 md:grid-cols-3">
+          <GameCard title="Oliver Te: Shadow Lab" icon={Gamepad2} href="/games/oliver-te-shadow-lab" status="Playable" description="Run through the first Oscar's Laboratory platformer and stop the AI Core." />
           <GameCard title="Project Generator" icon={FlaskConical} href="/generator" status="Active" description="Continue your DIY build mission and generate the next lab blueprint." />
           <GameCard title="Code Quest" icon={Code2} href="/dashboard" status="Soon" description="Practice programming through short terminal-style challenges." />
-          <GameCard title="Robot Builder" icon={Bot} href="/dashboard" status="Prototype" description="Assemble a virtual robot and test sensor-driven behaviors." />
         </div>
       </section>
 

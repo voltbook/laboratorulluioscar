@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
         pathname: "/brand/**",
       },
       {
+        pathname: "/games/**",
+      },
+      {
         pathname: "/api/placeholder",
       },
     ],

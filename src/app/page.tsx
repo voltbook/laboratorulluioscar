@@ -13,33 +13,45 @@ const features = [
 
 const games = [
   {
+    title: "Oliver Te: Shadow Lab",
+    icon: Gamepad2,
+    status: "Playable",
+    href: "/games/oliver-te-shadow-lab",
+    description: "A retro 2D platformer where Oliver escapes a rogue AI laboratory through five shadow levels.",
+  },
+  {
     title: "Code Quest",
     icon: Code2,
     status: "Soon",
+    href: "/dashboard",
     description: "Solve coding puzzles, unlock lab rooms and learn programming by completing missions.",
   },
   {
     title: "Robot Builder",
     icon: Bot,
     status: "Prototype",
+    href: "/dashboard",
     description: "Assemble virtual robots, choose sensors and test behavior in a simulated arena.",
   },
   {
     title: "Circuit Master",
     icon: Zap,
     status: "Soon",
+    href: "/dashboard",
     description: "Connect components, debug wiring and learn electronics through interactive challenges.",
   },
   {
     title: "Science Lab",
     icon: Beaker,
     status: "Soon",
+    href: "/dashboard",
     description: "Run safe science simulations, collect observations and unlock experiment cards.",
   },
   {
     title: "AI Challenge Arena",
     icon: BrainCircuit,
     status: "Soon",
+    href: "/dashboard",
     description: "Compete with AI prompts, logic tasks, creative builds and engineering constraints.",
   },
 ];
@@ -88,7 +100,7 @@ export default function Home() {
           <ProjectGeneratorCard />
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {games.map((game) => <GameCard href="/dashboard" key={game.title} {...game} />)}
+          {games.map((game) => <GameCard key={game.title} {...game} />)}
         </div>
       </section>
 
