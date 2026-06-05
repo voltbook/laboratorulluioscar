@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Maximize2, Pause, Play, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUp, Crosshair, Keyboard, Maximize2, Pause, Play, RotateCcw, Zap } from "lucide-react";
 
 const levels = [
   {
@@ -782,10 +782,30 @@ export function OliverShadowLabGame() {
     document.dispatchEvent(event);
   };
 
+  const mobileControls = [
+    { label: "Left", key: "◀", code: "ArrowLeft", icon: ArrowLeft, help: "Move" },
+    { label: "Right", key: "▶", code: "ArrowRight", icon: ArrowRight, help: "Move" },
+    { label: "Jump", key: "␣", code: "Space", icon: ArrowUp, help: "Double" },
+    { label: "Plasma", key: "J", code: "KeyJ", icon: Crosshair, help: "Shoot" },
+    { label: "Power", key: "K", code: "KeyK", icon: Zap, help: "Pulse" },
+  ];
+
+  const desktopControls = [
+    { action: "Move", keys: "A/D or ←/→" },
+    { action: "Jump", keys: "W or Space" },
+    { action: "Plasma", keys: "J" },
+    { action: "Power", keys: "K" },
+    { action: "Next test level", keys: "N" },
+    { action: "Restart", keys: "R" },
+  ];
+
   return (
     <div className="terminal-panel overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-primary/15 p-3">
-        <div className="font-mono text-sm uppercase tracking-[0.16em] text-primary">Oliver Te runtime // Phaser 3</div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-primary/15 bg-black/30 p-3">
+        <div>
+          <div className="font-mono text-sm uppercase tracking-[0.16em] text-primary">Oliver Te runtime // Phaser 3</div>
+          <div className="mt-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">Mission controls armed · Plasma online · Shadow pulse requires energy</div>
+        </div>
         <div className="flex gap-2">
           <button className="lab-button h-9 px-3" onClick={togglePause} type="button">
             {running ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -797,36 +817,50 @@ export function OliverShadowLabGame() {
           </button>
           <button className="lab-button h-9 px-3" onClick={() => hostRef.current?.requestFullscreen()} type="button">
             <Maximize2 className="h-4 w-4" />
+            <span className="sr-only">Fullscreen</span>
           </button>
         </div>
       </div>
       <div ref={hostRef} className="min-h-[320px] bg-black" />
-      <div className="grid grid-cols-5 gap-2 border-t border-primary/15 p-3 md:hidden">
-        {[
-          ["Left", "ArrowLeft"],
-          ["Right", "ArrowRight"],
-          ["Jump", "Space"],
-          ["Plasma", "KeyJ"],
-          ["Power", "KeyK"],
-        ].map(([label, code]) => (
+      <div className="border-t border-primary/15 bg-black/45 p-3 md:hidden">
+        <div className="mb-2 flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+          <Keyboard className="h-3.5 w-3.5 text-primary" />
+          Touch controls
+        </div>
+        <div className="grid grid-cols-5 gap-2">
+          {mobileControls.map(({ label, key, code, icon: Icon, help }) => (
           <button
-            className="lab-button h-12 px-2 text-xs"
+            aria-label={`${label} control`}
+            className="group flex min-h-16 flex-col items-center justify-center gap-1 border border-primary/25 bg-primary/5 px-1 py-2 font-mono text-[0.64rem] uppercase tracking-[0.08em] text-white shadow-[inset_0_0_18px_rgba(0,255,102,0.04)] transition hover:border-primary active:scale-[0.97] active:bg-primary/20"
             key={label}
             onPointerDown={() => pressVirtualKey(code, "keydown")}
+            onPointerCancel={() => pressVirtualKey(code, "keyup")}
             onPointerLeave={() => pressVirtualKey(code, "keyup")}
             onPointerUp={() => pressVirtualKey(code, "keyup")}
             type="button"
           >
-            {label}
+            <span className="grid h-7 w-7 place-items-center border border-primary/20 bg-black/50 text-primary group-active:bg-primary group-active:text-black">
+              <Icon className="h-4 w-4" />
+            </span>
+            <span className="text-white">{label}</span>
+            <span className="text-[0.58rem] text-muted-foreground">{help} · {key}</span>
           </button>
-        ))}
+          ))}
+        </div>
       </div>
-      <div className="grid gap-3 border-t border-primary/15 p-3 text-xs text-muted-foreground md:grid-cols-5">
-        <span>Desktop: arrows/WASD</span>
-        <span>Jump: W / Space</span>
-        <span>Plasma: J</span>
-        <span>Power: K</span>
-        <span>Restart level: R</span>
+      <div className="border-t border-primary/15 bg-black/35 p-3">
+        <div className="mb-3 flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
+          <Keyboard className="h-3.5 w-3.5 text-primary" />
+          Desktop controls
+        </div>
+        <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-6">
+          {desktopControls.map((control) => (
+            <div className="flex items-center justify-between gap-3 border border-primary/10 bg-black/35 px-3 py-2 font-mono" key={control.action}>
+              <span className="uppercase tracking-[0.12em] text-white">{control.action}</span>
+              <kbd className="border border-primary/25 bg-primary/10 px-2 py-1 text-[0.68rem] text-primary">{control.keys}</kbd>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
