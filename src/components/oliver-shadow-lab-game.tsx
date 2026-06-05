@@ -141,7 +141,7 @@ export function OliverShadowLabGame() {
         drones!: Phaser.Physics.Arcade.Group;
         lasers!: Phaser.Physics.Arcade.StaticGroup;
         orbs!: Phaser.Physics.Arcade.StaticGroup;
-        goal!: Phaser.GameObjects.Rectangle;
+        goal!: Phaser.GameObjects.GameObject;
         levelIndex = 0;
         score = 0;
         hp = 3;
@@ -151,6 +151,7 @@ export function OliverShadowLabGame() {
         levelText!: Phaser.GameObjects.Text;
         hudText!: Phaser.GameObjects.Text;
         messageText!: Phaser.GameObjects.Text;
+        titleCard!: Phaser.GameObjects.Container;
 
         constructor() {
           super("shadow-lab");
@@ -158,13 +159,105 @@ export function OliverShadowLabGame() {
 
         preload() {
           this.load.image("cover", "/games/oliver-te-shadow-lab/cover-art.png");
+          this.load.image("sheet", "/games/oliver-te-shadow-lab/oliver-character-sheet.png");
         }
 
         create() {
           this.cursors = this.input.keyboard!.createCursorKeys();
           this.wasd = this.input.keyboard!.addKeys("W,A,S,D,SPACE,J,K,R") as Record<string, Phaser.Input.Keyboard.Key>;
+          this.createGeneratedTextures();
           this.createLevel(0);
           this.input.keyboard!.on("keydown-R", () => this.createLevel(this.levelIndex));
+        }
+
+        createGeneratedTextures() {
+          if (this.textures.exists("oliver-hero")) return;
+
+          const hero = this.add.graphics();
+          hero.fillStyle(0x151222, 1).fillTriangle(18, 36, 12, 76, 4, 86);
+          hero.fillStyle(0x080a12, 1).fillRoundedRect(26, 34, 36, 46, 8);
+          hero.lineStyle(3, 0x33ccff, 1).strokeRoundedRect(26, 34, 36, 46, 8);
+          hero.fillStyle(0x1b0f2f, 1).fillTriangle(58, 40, 88, 54, 58, 70);
+          hero.fillStyle(0xf2b17d, 1).fillCircle(44, 22, 17);
+          hero.fillStyle(0x09090d, 1).fillTriangle(24, 14, 34, 0, 39, 12).fillTriangle(36, 8, 48, 0, 50, 13).fillTriangle(48, 10, 64, 4, 55, 20);
+          hero.fillStyle(0x06070b, 1).fillRoundedRect(27, 17, 34, 11, 5);
+          hero.fillStyle(0x7cecff, 1).fillCircle(36, 22, 4).fillCircle(52, 22, 4);
+          hero.lineStyle(2, 0x00eaff, 1).strokeTriangle(35, 47, 54, 47, 44, 61);
+          hero.fillStyle(0x111827, 1).fillRoundedRect(23, 76, 14, 12, 3).fillRoundedRect(53, 76, 14, 12, 3);
+          hero.lineStyle(2, 0x33ccff, 0.8).strokeRoundedRect(20, 38, 12, 30, 4).strokeRoundedRect(58, 38, 12, 30, 4);
+          hero.generateTexture("oliver-hero", 92, 92);
+          hero.destroy();
+
+          const heroAttack = this.add.graphics();
+          heroAttack.fillStyle(0x151222, 1).fillTriangle(18, 36, 12, 76, 4, 86);
+          heroAttack.fillStyle(0x080a12, 1).fillRoundedRect(26, 34, 36, 46, 8);
+          heroAttack.lineStyle(3, 0xffffff, 1).strokeRoundedRect(26, 34, 36, 46, 8);
+          heroAttack.fillStyle(0xf2b17d, 1).fillCircle(44, 22, 17);
+          heroAttack.fillStyle(0x09090d, 1).fillTriangle(24, 14, 34, 0, 39, 12).fillTriangle(36, 8, 48, 0, 50, 13).fillTriangle(48, 10, 64, 4, 55, 20);
+          heroAttack.fillStyle(0x06070b, 1).fillRoundedRect(27, 17, 34, 11, 5);
+          heroAttack.fillStyle(0xffffff, 1).fillCircle(36, 22, 4).fillCircle(52, 22, 4);
+          heroAttack.lineStyle(5, 0x79f7ff, 1).lineBetween(62, 52, 78, 48).lineBetween(78, 48, 94, 40).lineBetween(94, 40, 106, 30);
+          heroAttack.lineStyle(2, 0x00eaff, 1).strokeTriangle(35, 47, 54, 47, 44, 61);
+          heroAttack.fillStyle(0x111827, 1).fillRoundedRect(23, 76, 14, 12, 3).fillRoundedRect(53, 76, 14, 12, 3);
+          heroAttack.generateTexture("oliver-attack", 112, 92);
+          heroAttack.destroy();
+
+          const drone = this.add.graphics();
+          drone.fillStyle(0x090c12, 1).fillRoundedRect(8, 18, 58, 26, 8);
+          drone.lineStyle(3, 0x33ccff, 1).strokeRoundedRect(8, 18, 58, 26, 8);
+          drone.fillStyle(0x33ccff, 1).fillCircle(22, 31, 5).fillCircle(52, 31, 5);
+          drone.lineStyle(2, 0x8ff8ff, 0.8).lineBetween(0, 16, 18, 24).lineBetween(74, 16, 56, 24);
+          drone.generateTexture("enemy-drone", 76, 56);
+          drone.destroy();
+
+          const bot = this.add.graphics();
+          bot.fillStyle(0x07100b, 1).fillRoundedRect(8, 18, 42, 36, 8);
+          bot.lineStyle(3, 0x00ff66, 1).strokeRoundedRect(8, 18, 42, 36, 8);
+          bot.fillStyle(0xff2d75, 1).fillCircle(22, 33, 4).fillCircle(36, 33, 4);
+          bot.lineStyle(2, 0x00ff66, 0.8).lineBetween(12, 54, 4, 66).lineBetween(46, 54, 54, 66);
+          bot.generateTexture("enemy-bot", 60, 72);
+          bot.destroy();
+
+          const spider = this.add.graphics();
+          spider.fillStyle(0x120a1c, 1).fillEllipse(38, 35, 44, 26);
+          spider.lineStyle(3, 0x9b5cff, 1).strokeEllipse(38, 35, 44, 26);
+          spider.fillStyle(0xd6c4ff, 1).fillCircle(30, 31, 4).fillCircle(46, 31, 4);
+          spider.lineStyle(2, 0x9b5cff, 1);
+          [10, 18, 58, 66].forEach((x) => spider.lineBetween(38, 43, x, 62));
+          spider.generateTexture("enemy-spider", 76, 70);
+          spider.destroy();
+
+          const brute = this.add.graphics();
+          brute.fillStyle(0x1a0a06, 1).fillRoundedRect(8, 8, 56, 66, 10);
+          brute.lineStyle(4, 0xff6b35, 1).strokeRoundedRect(8, 8, 56, 66, 10);
+          brute.fillStyle(0xffcf99, 1).fillCircle(28, 28, 5).fillCircle(46, 28, 5);
+          brute.fillStyle(0xff6b35, 0.7).fillRoundedRect(0, 36, 18, 18, 5).fillRoundedRect(54, 36, 18, 18, 5);
+          brute.generateTexture("enemy-brute", 74, 82);
+          brute.destroy();
+
+          const core = this.add.graphics();
+          core.fillStyle(0x170722, 1).fillCircle(48, 48, 40);
+          core.lineStyle(5, 0xff40ff, 1).strokeCircle(48, 48, 40);
+          core.lineStyle(3, 0x72f7ff, 0.85).strokeCircle(48, 48, 22);
+          core.fillStyle(0xff40ff, 1).fillCircle(48, 48, 10);
+          core.generateTexture("ai-core", 96, 96);
+          core.destroy();
+
+          const orb = this.add.graphics();
+          orb.fillStyle(0x00ff66, 0.18).fillCircle(24, 24, 22);
+          orb.fillStyle(0xdcff00, 0.9).fillCircle(24, 24, 10);
+          orb.lineStyle(3, 0x00ff66, 1).strokeCircle(24, 24, 15);
+          orb.lineStyle(2, 0xffffff, 0.8).lineBetween(17, 17, 31, 31).lineBetween(31, 17, 17, 31);
+          orb.generateTexture("energy-orb", 48, 48);
+          orb.destroy();
+
+          const exit = this.add.graphics();
+          exit.fillStyle(0x031109, 0.95).fillRoundedRect(8, 6, 48, 72, 4);
+          exit.lineStyle(4, 0x00ff66, 1).strokeRoundedRect(8, 6, 48, 72, 4);
+          exit.fillStyle(0x00ff66, 0.22).fillRoundedRect(18, 16, 28, 52, 3);
+          exit.lineStyle(2, 0xdcff00, 0.8).lineBetween(22, 26, 42, 26).lineBetween(22, 42, 42, 42).lineBetween(22, 58, 42, 58);
+          exit.generateTexture("goal-door", 64, 84);
+          exit.destroy();
         }
 
         createLevel(index: number) {
@@ -175,22 +268,27 @@ export function OliverShadowLabGame() {
           const level = levels[index];
 
           this.add.rectangle(480, 280, 960, 560, level.theme).setDepth(-10);
-          this.add.grid(480, 280, 960, 560, 48, 48, 0x000000, 0, 0x00ff66, 0.12).setDepth(-9);
-          this.add.rectangle(480, 36, 900, 48, 0x000000, 0.45).setStrokeStyle(1, 0x00ff66, 0.35);
+          this.add.image(745, 280, "cover").setDisplaySize(360, 360).setAlpha(0.08).setDepth(-9);
+          this.add.image(240, 178, "sheet").setDisplaySize(420, 236).setAlpha(index === 0 ? 0.13 : 0.055).setDepth(-9);
+          this.add.grid(480, 280, 960, 560, 48, 48, 0x000000, 0, 0x00ff66, 0.12).setDepth(-8);
+          this.drawEnvironment(index);
+          this.add.rectangle(480, 36, 900, 48, 0x000000, 0.58).setStrokeStyle(1, 0x00ff66, 0.35);
+          this.add.rectangle(480, 528, 960, 64, 0x000000, 0.42).setStrokeStyle(1, 0x00ff66, 0.18);
 
           this.platforms = this.physics.add.staticGroup();
           level.platforms.forEach(([x, y, w, h]) => {
-            const platform = this.add.rectangle(x + w / 2, y + h / 2, w, h, 0x132018).setStrokeStyle(1, 0x00ff66, 0.65);
+            const platform = this.add.rectangle(x + w / 2, y + h / 2, w, h, 0x11161a).setStrokeStyle(2, 0x00ff66, 0.78);
+            this.add.rectangle(x + w / 2, y + 2, w, 4, 0x7cff9d, 0.55);
             this.physics.add.existing(platform, true);
             this.platforms.add(platform);
           });
 
           this.player = this.physics.add.sprite(70, 450, "");
-          this.player.setSize(30, 44).setOffset(-15, -22);
           this.player.setCollideWorldBounds(true);
           this.player.setDragX(650);
           this.player.setMaxVelocity(250, 620);
-          this.drawPlayer(0x33ccff);
+          this.player.setTexture("oliver-hero").setDisplaySize(55, 55);
+          this.player.body.setSize(34, 50).setOffset(28, 36);
 
           this.enemies = this.physics.add.group();
           level.enemies.forEach(([x, y, type]) => this.spawnEnemy(Number(x), Number(y), String(type)));
@@ -199,30 +297,32 @@ export function OliverShadowLabGame() {
 
           this.lasers = this.physics.add.staticGroup();
           level.lasers.forEach(([x, y]) => {
-            const beam = this.add.rectangle(Number(x), Number(y), 18, 96, 0xff2d75, 0.7).setStrokeStyle(1, 0xff9bc3, 0.9);
+            const beam = this.add.rectangle(Number(x), Number(y), 16, 110, 0xff2d75, 0.62).setStrokeStyle(2, 0xff9bc3, 1);
+            this.add.rectangle(Number(x), Number(y), 42, 128, 0xff2d75, 0.08);
             this.physics.add.existing(beam, true);
             this.lasers.add(beam);
           });
 
           this.orbs = this.physics.add.staticGroup();
           level.orbs.forEach(([x, y]) => {
-            const orb = this.add.circle(Number(x), Number(y), 10, 0x00ff66).setStrokeStyle(2, 0xdcff00);
-            this.physics.add.existing(orb, true);
+            const orb = this.physics.add.staticSprite(Number(x), Number(y), "energy-orb").setDisplaySize(28, 28);
+            this.tweens.add({ targets: orb, y: Number(y) - 8, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
             this.orbs.add(orb);
           });
 
           if ("boss" in level && level.boss) {
             const [bossX, bossY] = level.boss;
-            const boss = this.add.rectangle(Number(bossX), Number(bossY), 82, 82, 0x241044).setStrokeStyle(3, 0xff40ff);
+            const boss = this.add.sprite(Number(bossX), Number(bossY), "ai-core").setDisplaySize(92, 92);
             this.add.text(Number(bossX) - 35, Number(bossY) - 6, "AI CORE", { fontFamily: "monospace", fontSize: "12px", color: "#ffb8ff" });
             this.physics.add.existing(boss);
             this.enemies.add(boss);
           }
 
           const [gx, gy] = level.goal;
-          const goalRect = this.add.rectangle(Number(gx), Number(gy), 42, 64, 0x00ff66, 0.16).setStrokeStyle(2, 0x00ff66);
-          this.physics.add.existing(goalRect, true);
-          this.goal = goalRect;
+          const goal = this.physics.add.staticSprite(Number(gx), Number(gy), "goal-door").setDisplaySize(58, 78);
+          this.add.text(Number(gx) - 19, Number(gy) - 6, "EXIT", { fontFamily: "monospace", fontSize: "12px", color: "#baffc8" });
+          this.tweens.add({ targets: goal, alpha: 0.68, duration: 650, yoyo: true, repeat: -1 });
+          this.goal = goal;
 
           this.levelText = this.add.text(24, 20, level.name, { fontFamily: "monospace", fontSize: "18px", color: "#ffffff" }).setScrollFactor(0);
           this.hudText = this.add.text(24, 48, "", { fontFamily: "monospace", fontSize: "14px", color: "#00ff66" }).setScrollFactor(0);
@@ -245,31 +345,48 @@ export function OliverShadowLabGame() {
           this.updateHud();
         }
 
-        drawPlayer(color: number) {
-          const g = this.add.graphics();
-          g.fillStyle(0x070b12, 1).fillRoundedRect(-15, -24, 30, 44, 5);
-          g.lineStyle(2, color, 1).strokeRoundedRect(-15, -24, 30, 44, 5);
-          g.fillStyle(0x101827, 1).fillCircle(-6, -29, 8).fillCircle(6, -29, 8);
-          g.lineStyle(2, 0x6be8ff, 1).strokeTriangle(-8, -14, 8, -14, 0, -2);
-          const textureKey = `player-${color}`;
-          g.generateTexture(textureKey, 48, 64);
-          g.destroy();
-          this.player.setTexture(textureKey);
+        drawEnvironment(index: number) {
+          if (index === 0) {
+            for (let x = 40; x < 920; x += 110) {
+              this.add.rectangle(x, 190, 24, 180, 0x0d2115, 0.65).setStrokeStyle(1, 0x00ff66, 0.25);
+              this.add.circle(x, 280, 8, 0x00ff66, 0.25);
+            }
+          } else if (index === 1) {
+            for (let x = 20; x < 950; x += 95) {
+              const h = 110 + ((x * 7) % 120);
+              this.add.rectangle(x, 520 - h / 2, 70, h, 0x080b19, 0.95).setStrokeStyle(1, 0x33ccff, 0.25);
+              this.add.rectangle(x + 12, 510 - h, 10, 24, 0xff40ff, 0.5);
+            }
+          } else if (index === 2) {
+            for (let x = 40; x < 930; x += 120) {
+              this.add.circle(x, 210, 44, 0x062018, 0.45).setStrokeStyle(2, 0x00ff66, 0.22);
+              this.add.rectangle(x, 502, 80, 16, 0x00ff66, 0.09);
+            }
+          } else if (index === 3) {
+            for (let x = 70; x < 920; x += 150) {
+              this.add.rectangle(x, 250, 90, 210, 0x1a1010, 0.65).setStrokeStyle(1, 0xff6b35, 0.3);
+              this.add.circle(x + 25, 180, 22, 0xff6b35, 0.12);
+            }
+          } else {
+            for (let x = 110; x < 900; x += 160) {
+              this.add.rectangle(x, 270, 62, 360, 0x13061f, 0.7).setStrokeStyle(1, 0xff40ff, 0.35);
+              this.add.line(x, 95, 0, 0, 0, 300, 0x72f7ff, 0.26);
+            }
+          }
         }
 
         spawnEnemy(x: number, y: number, type: string) {
-          const color = type === "spider" ? 0x9b5cff : type === "brute" ? 0xff6b35 : 0x00ff66;
-          const body = this.add.rectangle(x, y, type === "brute" ? 46 : 34, type === "brute" ? 52 : 30, 0x0b0f12).setStrokeStyle(2, color);
-          this.physics.add.existing(body);
-          const arcadeBody = body.body as Phaser.Physics.Arcade.Body;
+          const texture = type === "spider" ? "enemy-spider" : type === "brute" ? "enemy-brute" : "enemy-bot";
+          const enemy = this.add.sprite(x, y, texture).setDisplaySize(type === "brute" ? 58 : type === "spider" ? 58 : 46, type === "brute" ? 64 : 50);
+          this.physics.add.existing(enemy);
+          const arcadeBody = enemy.body as Phaser.Physics.Arcade.Body;
           arcadeBody.setCollideWorldBounds(true);
           arcadeBody.setVelocityX(type === "brute" ? -45 : -70);
-          (body as Phaser.GameObjects.Rectangle & { enemyType?: string }).enemyType = type;
-          this.enemies.add(body);
+          this.enemies.add(enemy);
         }
 
         spawnDrone(x: number, y: number) {
-          const drone = this.add.rectangle(x, y, 42, 20, 0x0b0f12).setStrokeStyle(2, 0x33ccff);
+          const drone = this.add.sprite(x, y, "enemy-drone").setDisplaySize(62, 42);
           this.physics.add.existing(drone);
           const body = drone.body as Phaser.Physics.Arcade.Body;
           body.allowGravity = false;
@@ -296,22 +413,23 @@ export function OliverShadowLabGame() {
 
           if (Phaser.Input.Keyboard.JustDown(this.wasd.J) || Phaser.Input.Keyboard.JustDown(this.wasd.K)) {
             this.attackUntil = this.time.now + 260;
-            this.drawPlayer(0xffffff);
+            this.player.setTexture("oliver-attack").setDisplaySize(65, 55);
           }
           if (this.attackUntil && this.time.now > this.attackUntil) {
             this.attackUntil = 0;
-            this.drawPlayer(0x33ccff);
+            this.player.setTexture("oliver-hero").setDisplaySize(55, 55);
           }
 
           this.enemies.getChildren().forEach((child) => {
-            const obj = child as Phaser.GameObjects.Rectangle;
+            const obj = child as Phaser.GameObjects.Sprite;
             const enemyBody = obj.body as Phaser.Physics.Arcade.Body | undefined;
             if (!enemyBody) return;
             if (obj.y > 505 || obj.x < 35 || obj.x > 925) enemyBody.setVelocityX((enemyBody.velocity.x || 60) * -1);
+            obj.setFlipX(enemyBody.velocity.x > 0);
           });
 
           this.drones.getChildren().forEach((child) => {
-            const obj = child as Phaser.GameObjects.Rectangle;
+            const obj = child as Phaser.GameObjects.Sprite;
             const droneBody = obj.body as Phaser.Physics.Arcade.Body | undefined;
             if (!droneBody) return;
             if (obj.x < 120 || obj.x > 850) droneBody.setVelocityX((droneBody.velocity.x || 80) * -1);
