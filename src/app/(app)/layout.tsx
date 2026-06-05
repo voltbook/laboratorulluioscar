@@ -1,5 +1,5 @@
 import { MatrixRain } from "@/components/matrix-rain";
-import { SiteNav } from "@/components/site-nav";
+import { SiteFooter, SiteNav } from "@/components/site-nav";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -7,6 +7,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <MatrixRain />
       <SiteNav />
       <div className="relative z-10">{children}</div>
+      <SiteFooter />
     </div>
   );
 }

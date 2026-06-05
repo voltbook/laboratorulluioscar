@@ -13,8 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Laboratorul Lui Oscar",
-  description: "Platformă AI pentru proiecte DIY hardware în România.",
+  title: "Oscar's Laboratory",
+  description: "Educational games, AI project generator, science experiments, coding challenges, robotics and creative entertainment.",
+  icons: {
+    icon: "/brand/project-generator-icon.png",
+    apple: "/brand/oscar-laboratory-logo.png",
+  },
 };
 
 export default function RootLayout({
@@ -23,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ro" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}>
       <body className="min-h-full bg-background text-foreground">{children}</body>
     </html>
   );
