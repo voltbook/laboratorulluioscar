@@ -119,6 +119,14 @@ const levels = [
   },
 ] as const;
 
+const levelBackgrounds = [
+  "/games/oliver-te/backgrounds/level-01-lab-escape-bg.png",
+  "/games/oliver-te/backgrounds/level-02-neon-rooftops-bg.png",
+  "/games/oliver-te/backgrounds/level-03-underground-tunnels-bg.png",
+  "/games/oliver-te/backgrounds/level-04-shadow-factory-bg.png",
+  "/games/oliver-te/backgrounds/level-05-tower-core-bg.png",
+] as const;
+
 export function OliverShadowLabGame() {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const gameRef = useRef<{ destroy: (removeCanvas: boolean, noReturn?: boolean) => void; scene: { getScene: (key: string) => unknown } } | null>(null);
@@ -160,6 +168,7 @@ export function OliverShadowLabGame() {
         preload() {
           this.load.image("cover", "/games/oliver-te-shadow-lab/cover-art.png");
           this.load.image("sheet", "/games/oliver-te-shadow-lab/oliver-character-sheet.png");
+          levelBackgrounds.forEach((path, index) => this.load.image(`level-bg-${index}`, path));
         }
 
         create() {
@@ -268,9 +277,9 @@ export function OliverShadowLabGame() {
           const level = levels[index];
 
           this.add.rectangle(480, 280, 960, 560, level.theme).setDepth(-10);
-          this.add.image(745, 280, "cover").setDisplaySize(360, 360).setAlpha(0.08).setDepth(-9);
-          this.add.image(240, 178, "sheet").setDisplaySize(420, 236).setAlpha(index === 0 ? 0.13 : 0.055).setDepth(-9);
-          this.add.grid(480, 280, 960, 560, 48, 48, 0x000000, 0, 0x00ff66, 0.12).setDepth(-8);
+          this.add.image(480, 280, `level-bg-${index}`).setDisplaySize(960, 560).setAlpha(0.92).setDepth(-9);
+          this.add.rectangle(480, 280, 960, 560, 0x000000, 0.32).setDepth(-8);
+          this.add.grid(480, 280, 960, 560, 48, 48, 0x000000, 0, 0x00e5ff, 0.09).setDepth(-7);
           this.drawEnvironment(index);
           this.add.rectangle(480, 36, 900, 48, 0x000000, 0.58).setStrokeStyle(1, 0x00ff66, 0.35);
           this.add.rectangle(480, 528, 960, 64, 0x000000, 0.42).setStrokeStyle(1, 0x00ff66, 0.18);

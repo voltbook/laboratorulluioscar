@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Bot, CheckCircle2, Gamepad2, MessageSquare, Star, Trophy, Zap } from "lucide-react";
+import { Bot, CheckCircle2, MessageSquare, Star, Trophy, Zap } from "lucide-react";
 import { OliverShadowLabGame } from "@/components/oliver-shadow-lab-game";
 
 const levels = [
@@ -31,11 +31,11 @@ export default function OliverShadowLabPage() {
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
         <div className="terminal-panel overflow-hidden">
-          <Image src="/games/oliver-te-shadow-lab/cover-art.png" alt="Oliver Te: Shadow Lab cover art" width={1024} height={1024} className="aspect-square w-full object-cover" priority />
+          <Image src="/games/oliver-te/marketing/cover-wide.png" alt="Oliver Te: Shadow Lab cover art" width={1920} height={1080} className="aspect-video w-full object-cover" priority />
         </div>
         <div>
-          <div className="mb-4 inline-flex items-center gap-2 border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.2em] text-primary">
-            <Gamepad2 className="h-4 w-4" />
+          <div className="mb-4 inline-flex items-center gap-3 border border-primary/30 bg-primary/10 px-3 py-2 font-mono text-xs uppercase tracking-[0.2em] text-primary">
+            <Image src="/games/oliver-te/marketing/game-icon.png" alt="" width={32} height={32} className="h-8 w-8 rounded border border-primary/25 object-cover" />
             First playable game
           </div>
           <h1 className="font-mono text-4xl uppercase tracking-[0.12em] text-white md:text-6xl">Oliver Te: Shadow Lab</h1>
@@ -81,8 +81,8 @@ export default function OliverShadowLabPage() {
       <section className="mt-8">
         <h2 className="mb-4 font-mono text-2xl text-white">Screenshots</h2>
         <div className="grid gap-4 md:grid-cols-2">
-          <Image src="/games/oliver-te-shadow-lab/oliver-character-sheet.png" alt="Oliver Te sprite and animation reference" width={1536} height={864} className="border border-primary/15 object-cover" />
-          <Image src="/games/oliver-te-shadow-lab/cover-art.png" alt="Oliver Te cover screenshot" width={1024} height={1024} className="border border-primary/15 object-cover" />
+          <Image src="/games/oliver-te/marketing/screenshots/screenshot-level-01.png" alt="Oliver Te level 1 gameplay preview" width={1920} height={1080} className="aspect-video border border-primary/15 object-cover" />
+          <Image src="/games/oliver-te/marketing/screenshots/screenshot-boss-fight.png" alt="Oliver Te boss fight gameplay preview" width={1920} height={1080} className="aspect-video border border-primary/15 object-cover" />
         </div>
       </section>
 

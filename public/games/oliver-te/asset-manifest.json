@@ -1,0 +1,60 @@
+{
+  "game": "Oliver Te: Shadow Lab",
+  "version": "0.1.0",
+  "basePath": "/games/oliver-te",
+  "critical": {
+    "coverWide": "/games/oliver-te/marketing/cover-wide.png",
+    "gameIcon": "/games/oliver-te/marketing/game-icon.png",
+    "level01Background": "/games/oliver-te/backgrounds/level-01-lab-escape-bg.png",
+    "tilesetLabIndustrial": "/games/oliver-te/tilesets/tileset-lab-industrial.png",
+    "player": "/games/oliver-te/sprites/player/oliver-player-spritesheet.png"
+  },
+  "backgrounds": {
+    "level01": "/games/oliver-te/backgrounds/level-01-lab-escape-bg.png",
+    "level02": "/games/oliver-te/backgrounds/level-02-neon-rooftops-bg.png",
+    "level03": "/games/oliver-te/backgrounds/level-03-underground-tunnels-bg.png",
+    "level04": "/games/oliver-te/backgrounds/level-04-shadow-factory-bg.png",
+    "level05": "/games/oliver-te/backgrounds/level-05-tower-core-bg.png"
+  },
+  "sprites": {
+    "player": {
+      "key": "oliver-player",
+      "path": "/games/oliver-te/sprites/player/oliver-player-spritesheet.png",
+      "frameWidth": 128,
+      "frameHeight": 128
+    },
+    "enemies": {
+      "shadowImp": "/games/oliver-te/sprites/enemies/enemy-shadow-imp-spritesheet.png",
+      "cyberDrone": "/games/oliver-te/sprites/enemies/enemy-cyber-drone-spritesheet.png",
+      "spiderBot": "/games/oliver-te/sprites/enemies/enemy-spider-bot-spritesheet.png",
+      "shadowBrute": "/games/oliver-te/sprites/enemies/enemy-shadow-brute-spritesheet.png"
+    },
+    "bosses": {
+      "aiCoreGuardian": "/games/oliver-te/sprites/bosses/boss-ai-core-guardian-spritesheet.png"
+    },
+    "collectibles": "/games/oliver-te/sprites/collectibles/collectibles-spritesheet.png",
+    "laserTrap": "/games/oliver-te/sprites/traps/trap-laser-spritesheet.png",
+    "exitDoor": "/games/oliver-te/sprites/props/exit-door-spritesheet.png"
+  },
+  "ui": {
+    "hudAtlas": "/games/oliver-te/ui/ui-hud-atlas.png",
+    "menuPanels": "/games/oliver-te/ui/ui-menu-panels.png"
+  },
+  "vfx": {
+    "spriteSheet": "/games/oliver-te/vfx/vfx-spritesheet.png"
+  },
+  "audio": {
+    "music": {
+      "mainTheme": "/games/oliver-te/audio/music/music-main-theme.mp3",
+      "levelLoop": "/games/oliver-te/audio/music/music-level-loop.mp3",
+      "bossLoop": "/games/oliver-te/audio/music/music-boss-loop.mp3"
+    },
+    "sfx": {
+      "jump": "/games/oliver-te/audio/sfx/sfx-jump.wav",
+      "attack": "/games/oliver-te/audio/sfx/sfx-attack.wav",
+      "pickupOrb": "/games/oliver-te/audio/sfx/sfx-pickup-orb.wav",
+      "damage": "/games/oliver-te/audio/sfx/sfx-damage.wav",
+      "levelComplete": "/games/oliver-te/audio/sfx/sfx-level-complete.wav"
+    }
+  }
+}
