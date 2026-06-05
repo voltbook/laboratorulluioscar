@@ -31,7 +31,12 @@
         "frameWidth": 128,
         "frameHeight": 128
       },
-      "cyberDrone": "/games/oliver-te/sprites/enemies/enemy-cyber-drone-spritesheet.png",
+      "cyberDrone": {
+        "key": "enemy-cyber-drone",
+        "path": "/games/oliver-te/sprites/enemies/enemy-cyber-drone-spritesheet.png",
+        "frameWidth": 128,
+        "frameHeight": 128
+      },
       "spiderBot": "/games/oliver-te/sprites/enemies/enemy-spider-bot-spritesheet.png",
       "shadowBrute": "/games/oliver-te/sprites/enemies/enemy-shadow-brute-spritesheet.png"
     },

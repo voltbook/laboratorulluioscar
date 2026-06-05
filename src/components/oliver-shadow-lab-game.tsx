@@ -147,14 +147,19 @@ export function OliverShadowLabGame() {
         platforms!: Phaser.Physics.Arcade.StaticGroup;
         enemies!: Phaser.Physics.Arcade.Group;
         drones!: Phaser.Physics.Arcade.Group;
+        projectiles!: Phaser.Physics.Arcade.Group;
         lasers!: Phaser.Physics.Arcade.StaticGroup;
         orbs!: Phaser.Physics.Arcade.StaticGroup;
         goal!: Phaser.GameObjects.GameObject;
         levelIndex = 0;
         score = 0;
         hp = 3;
+        energy = 70;
+        facing = 1;
         jumps = 0;
         attackUntil = 0;
+        weaponCooldownUntil = 0;
+        specialCooldownUntil = 0;
         invulnerableUntil = 0;
         levelText!: Phaser.GameObjects.Text;
         hudText!: Phaser.GameObjects.Text;
@@ -173,6 +178,10 @@ export function OliverShadowLabGame() {
             frameHeight: 128,
           });
           this.load.spritesheet("enemy-shadow-imp", "/games/oliver-te/sprites/enemies/enemy-shadow-imp-spritesheet.png", {
+            frameWidth: 128,
+            frameHeight: 128,
+          });
+          this.load.spritesheet("enemy-cyber-drone", "/games/oliver-te/sprites/enemies/enemy-cyber-drone-spritesheet.png", {
             frameWidth: 128,
             frameHeight: 128,
           });
@@ -208,6 +217,9 @@ export function OliverShadowLabGame() {
           this.anims.create({ key: "shadow-imp-walk", frames: this.anims.generateFrameNumbers("enemy-shadow-imp", { start: 8, end: 15 }), frameRate: 10, repeat: -1 });
           this.anims.create({ key: "shadow-imp-attack", frames: this.anims.generateFrameNumbers("enemy-shadow-imp", { start: 16, end: 23 }), frameRate: 12, repeat: 0 });
           this.anims.create({ key: "shadow-imp-death", frames: this.anims.generateFrameNumbers("enemy-shadow-imp", { start: 24, end: 31 }), frameRate: 10, repeat: 0 });
+          this.anims.create({ key: "cyber-drone-fly", frames: this.anims.generateFrameNumbers("enemy-cyber-drone", { start: 0, end: 15 }), frameRate: 14, repeat: -1 });
+          this.anims.create({ key: "cyber-drone-shoot", frames: this.anims.generateFrameNumbers("enemy-cyber-drone", { start: 16, end: 23 }), frameRate: 12, repeat: -1 });
+          this.anims.create({ key: "cyber-drone-destroyed", frames: this.anims.generateFrameNumbers("enemy-cyber-drone", { start: 24, end: 31 }), frameRate: 10, repeat: 0 });
         }
 
         createGeneratedTextures() {
@@ -241,14 +253,6 @@ export function OliverShadowLabGame() {
           heroAttack.fillStyle(0x111827, 1).fillRoundedRect(23, 76, 14, 12, 3).fillRoundedRect(53, 76, 14, 12, 3);
           heroAttack.generateTexture("oliver-attack", 112, 92);
           heroAttack.destroy();
-
-          const drone = this.add.graphics();
-          drone.fillStyle(0x090c12, 1).fillRoundedRect(8, 18, 58, 26, 8);
-          drone.lineStyle(3, 0x33ccff, 1).strokeRoundedRect(8, 18, 58, 26, 8);
-          drone.fillStyle(0x33ccff, 1).fillCircle(22, 31, 5).fillCircle(52, 31, 5);
-          drone.lineStyle(2, 0x8ff8ff, 0.8).lineBetween(0, 16, 18, 24).lineBetween(74, 16, 56, 24);
-          drone.generateTexture("enemy-drone", 76, 56);
-          drone.destroy();
 
           const bot = this.add.graphics();
           bot.fillStyle(0x07100b, 1).fillRoundedRect(8, 18, 42, 36, 8);
@@ -298,6 +302,21 @@ export function OliverShadowLabGame() {
           exit.lineStyle(2, 0xdcff00, 0.8).lineBetween(22, 26, 42, 26).lineBetween(22, 42, 42, 42).lineBetween(22, 58, 42, 58);
           exit.generateTexture("goal-door", 64, 84);
           exit.destroy();
+
+          const bolt = this.add.graphics();
+          bolt.fillStyle(0x74f7ff, 0.35).fillEllipse(36, 14, 66, 20);
+          bolt.fillStyle(0xffffff, 1).fillEllipse(42, 14, 32, 8);
+          bolt.lineStyle(3, 0x00eaff, 1).strokeEllipse(38, 14, 58, 16);
+          bolt.lineStyle(2, 0x7c3aed, 0.9).lineBetween(0, 14, 20, 14);
+          bolt.generateTexture("plasma-bolt", 72, 28);
+          bolt.destroy();
+
+          const spark = this.add.graphics();
+          spark.fillStyle(0xffffff, 1).fillCircle(24, 24, 7);
+          spark.lineStyle(3, 0x7cf7ff, 1).strokeCircle(24, 24, 15);
+          spark.lineStyle(2, 0xffb000, 0.9).lineBetween(24, 0, 24, 48).lineBetween(0, 24, 48, 24).lineBetween(8, 8, 40, 40).lineBetween(40, 8, 8, 40);
+          spark.generateTexture("impact-spark", 48, 48);
+          spark.destroy();
         }
 
         createLevel(index: number) {
@@ -325,8 +344,8 @@ export function OliverShadowLabGame() {
 
           this.player = this.physics.add.sprite(70, 450, "oliver-player", 0);
           this.player.setCollideWorldBounds(true);
-          this.player.setDragX(650);
-          this.player.setMaxVelocity(250, 620);
+          this.player.setDragX(850);
+          this.player.setMaxVelocity(340, 660);
           this.player.setDisplaySize(90, 90);
           this.player.body.setSize(44, 70).setOffset(42, 42);
           this.player.play("oliver-idle");
@@ -335,6 +354,7 @@ export function OliverShadowLabGame() {
           level.enemies.forEach(([x, y, type]) => this.spawnEnemy(Number(x), Number(y), String(type)));
           this.drones = this.physics.add.group();
           level.drones.forEach(([x, y]) => this.spawnDrone(Number(x), Number(y)));
+          this.projectiles = this.physics.add.group();
 
           this.lasers = this.physics.add.staticGroup();
           level.lasers.forEach(([x, y]) => {
@@ -367,7 +387,7 @@ export function OliverShadowLabGame() {
 
           this.levelText = this.add.text(24, 20, level.name, { fontFamily: "monospace", fontSize: "18px", color: "#ffffff" }).setScrollFactor(0);
           this.hudText = this.add.text(24, 48, "", { fontFamily: "monospace", fontSize: "14px", color: "#00ff66" }).setScrollFactor(0);
-          this.messageText = this.add.text(480, 96, "Move: A/D or arrows · Jump: W/Space · Attack: J · Restart: R", {
+          this.messageText = this.add.text(480, 96, "Move: A/D or arrows · Jump: W/Space · Plasma: J · Power: K · Restart: R", {
             fontFamily: "monospace",
             fontSize: "13px",
             color: "#9eeeb5",
@@ -376,9 +396,12 @@ export function OliverShadowLabGame() {
 
           this.physics.add.collider(this.player, this.platforms);
           this.physics.add.collider(this.enemies, this.platforms);
+          this.physics.add.overlap(this.projectiles, this.enemies, (projectile, enemy) => this.hitEnemyWithProjectile(projectile as Phaser.GameObjects.GameObject, enemy as Phaser.GameObjects.GameObject));
           this.physics.add.overlap(this.player, this.orbs, (_, orb) => {
             (orb as Phaser.GameObjects.GameObject).destroy();
             this.score += 10;
+            this.energy = Math.min(100, this.energy + 18);
+            this.flashMessage("+18 energy");
           });
           this.physics.add.overlap(this.player, this.goal, () => this.nextLevel());
           this.physics.add.overlap(this.player, this.enemies, (_, enemy) => this.handleEnemy(enemy as Phaser.GameObjects.GameObject));
@@ -438,11 +461,13 @@ export function OliverShadowLabGame() {
         }
 
         spawnDrone(x: number, y: number) {
-          const drone = this.add.sprite(x, y, "enemy-drone").setDisplaySize(62, 42);
+          const drone = this.add.sprite(x, y, "enemy-cyber-drone", 0).setDisplaySize(72, 72);
           this.physics.add.existing(drone);
           const body = drone.body as Phaser.Physics.Arcade.Body;
           body.allowGravity = false;
+          body.setSize(58, 42).setOffset(35, 42);
           body.setVelocityX(-80);
+          drone.play("cyber-drone-fly");
           this.drones.add(drone);
           this.enemies.add(drone);
         }
@@ -453,22 +478,27 @@ export function OliverShadowLabGame() {
           const right = this.cursors.right.isDown || this.wasd.D.isDown;
           const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.wasd.W) || Phaser.Input.Keyboard.JustDown(this.wasd.SPACE);
 
-          if (left) body.setAccelerationX(-900);
-          else if (right) body.setAccelerationX(900);
+          if (left) body.setAccelerationX(-1250);
+          else if (right) body.setAccelerationX(1250);
           else body.setAccelerationX(0);
-          if (left) this.player.setFlipX(true);
-          if (right) this.player.setFlipX(false);
+          if (left) {
+            this.facing = -1;
+            this.player.setFlipX(true);
+          }
+          if (right) {
+            this.facing = 1;
+            this.player.setFlipX(false);
+          }
 
           if (body.blocked.down) this.jumps = 0;
           if (jumpPressed && this.jumps < 2) {
-            body.setVelocityY(this.jumps === 0 ? -390 : -340);
+            body.setVelocityY(this.jumps === 0 ? -430 : -370);
             this.jumps += 1;
+            this.spawnSpark(this.player.x, this.player.y + 32, 0x74f7ff);
           }
 
-          if (Phaser.Input.Keyboard.JustDown(this.wasd.J) || Phaser.Input.Keyboard.JustDown(this.wasd.K)) {
-            this.attackUntil = this.time.now + 260;
-            this.player.play("oliver-attack", true);
-          }
+          if (Phaser.Input.Keyboard.JustDown(this.wasd.J)) this.firePlasmaBolt();
+          if (Phaser.Input.Keyboard.JustDown(this.wasd.K)) this.castShockwave();
           if (this.attackUntil && this.time.now > this.attackUntil) {
             this.attackUntil = 0;
           }
@@ -490,8 +520,74 @@ export function OliverShadowLabGame() {
             obj.y += Math.sin(this.time.now / 250) * 0.45;
           });
 
+          this.projectiles.getChildren().forEach((child) => {
+            const obj = child as Phaser.GameObjects.Sprite;
+            if (obj.x < -40 || obj.x > 1000) obj.destroy();
+          });
+
+          this.energy = Math.min(100, this.energy + 0.035);
           if (this.player.y > 545) this.damage("Fell into the shadows");
           this.updateHud();
+        }
+
+        firePlasmaBolt() {
+          if (this.time.now < this.weaponCooldownUntil) return;
+          this.weaponCooldownUntil = this.time.now + 260;
+          this.attackUntil = this.time.now + 220;
+          this.player.play("oliver-attack", true);
+          const projectile = this.physics.add.sprite(this.player.x + this.facing * 42, this.player.y + 4, "plasma-bolt").setDisplaySize(58, 22);
+          projectile.setFlipX(this.facing < 0);
+          projectile.setDepth(4);
+          projectile.body.allowGravity = false;
+          projectile.body.setVelocityX(this.facing * 610);
+          projectile.body.setSize(52, 16);
+          this.projectiles.add(projectile);
+          this.tweens.add({ targets: projectile, alpha: 0.72, duration: 70, yoyo: true, repeat: 6 });
+          this.time.delayedCall(900, () => projectile.destroy());
+        }
+
+        castShockwave() {
+          if (this.time.now < this.specialCooldownUntil || this.energy < 38) {
+            this.flashMessage(this.energy < 38 ? "Need more energy" : "Power recharging");
+            return;
+          }
+          this.energy -= 38;
+          this.specialCooldownUntil = this.time.now + 1800;
+          this.attackUntil = this.time.now + 420;
+          this.player.play("oliver-special", true);
+          const wave = this.add.circle(this.player.x, this.player.y, 26, 0x74f7ff, 0.18).setStrokeStyle(3, 0x7c3aed, 0.95).setDepth(3);
+          this.tweens.add({ targets: wave, scale: 7, alpha: 0, duration: 420, ease: "Cubic.easeOut", onComplete: () => wave.destroy() });
+          this.cameras.main.shake(120, 0.006);
+          this.enemies.getChildren().forEach((child) => {
+            const enemy = child as Phaser.GameObjects.Sprite;
+            const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
+            if (distance > 205) return;
+            this.spawnSpark(enemy.x, enemy.y, 0xffb000);
+            enemy.destroy();
+            this.score += 35;
+          });
+          this.flashMessage("Shadow pulse unleashed");
+        }
+
+        hitEnemyWithProjectile(projectile: Phaser.GameObjects.GameObject, enemy: Phaser.GameObjects.GameObject) {
+          const target = enemy as Phaser.GameObjects.Sprite;
+          this.spawnSpark(target.x, target.y, 0xffb000);
+          projectile.destroy();
+          enemy.destroy();
+          this.score += 25;
+          this.energy = Math.min(100, this.energy + 7);
+        }
+
+        spawnSpark(x: number, y: number, tint: number) {
+          const spark = this.add.sprite(x, y, "impact-spark").setTint(tint).setDisplaySize(34, 34).setDepth(5);
+          this.tweens.add({ targets: spark, scale: 1.8, alpha: 0, duration: 260, ease: "Quad.easeOut", onComplete: () => spark.destroy() });
+        }
+
+        flashMessage(text: string) {
+          this.messageText?.setText(text);
+          this.time.delayedCall(900, () => {
+            if (this.messageText?.text === text) this.messageText.setText("");
+          });
         }
 
         handleEnemy(enemy: Phaser.GameObjects.GameObject) {
@@ -533,7 +629,9 @@ export function OliverShadowLabGame() {
         }
 
         updateHud() {
-          this.hudText?.setText(`HP ${"■".repeat(this.hp)}${"□".repeat(3 - this.hp)} · XP ${this.score} · Orbs are energy · Attack disables enemies`);
+          const energyBlocks = Math.round(this.energy / 20);
+          const powerReady = this.energy >= 38 && this.time.now >= this.specialCooldownUntil ? "READY" : "CHARGE";
+          this.hudText?.setText(`HP ${"■".repeat(this.hp)}${"□".repeat(3 - this.hp)} · EN ${"◆".repeat(energyBlocks)}${"◇".repeat(5 - energyBlocks)} · XP ${this.score} · J plasma · K power ${powerReady}`);
         }
 
         updatePlayerAnimation(left: boolean, right: boolean) {
@@ -604,8 +702,16 @@ export function OliverShadowLabGame() {
   };
 
   const pressVirtualKey = (code: string, type: "keydown" | "keyup") => {
-    window.dispatchEvent(new KeyboardEvent(type, { code, key: code.replace("Arrow", ""), bubbles: true }));
-    document.dispatchEvent(new KeyboardEvent(type, { code, key: code.replace("Arrow", ""), bubbles: true }));
+    const keyMap: Record<string, string> = {
+      ArrowLeft: "ArrowLeft",
+      ArrowRight: "ArrowRight",
+      KeyJ: "j",
+      KeyK: "k",
+      Space: " ",
+    };
+    const event = new KeyboardEvent(type, { code, key: keyMap[code] ?? code, bubbles: true });
+    window.dispatchEvent(event);
+    document.dispatchEvent(event);
   };
 
   return (
@@ -627,12 +733,13 @@ export function OliverShadowLabGame() {
         </div>
       </div>
       <div ref={hostRef} className="min-h-[320px] bg-black" />
-      <div className="grid grid-cols-4 gap-2 border-t border-primary/15 p-3 md:hidden">
+      <div className="grid grid-cols-5 gap-2 border-t border-primary/15 p-3 md:hidden">
         {[
           ["Left", "ArrowLeft"],
           ["Right", "ArrowRight"],
           ["Jump", "Space"],
-          ["Attack", "KeyJ"],
+          ["Plasma", "KeyJ"],
+          ["Power", "KeyK"],
         ].map(([label, code]) => (
           <button
             className="lab-button h-12 px-2 text-xs"
@@ -646,10 +753,11 @@ export function OliverShadowLabGame() {
           </button>
         ))}
       </div>
-      <div className="grid gap-3 border-t border-primary/15 p-3 text-xs text-muted-foreground md:grid-cols-4">
+      <div className="grid gap-3 border-t border-primary/15 p-3 text-xs text-muted-foreground md:grid-cols-5">
         <span>Desktop: arrows/WASD</span>
         <span>Jump: W / Space</span>
-        <span>Attack: J / K</span>
+        <span>Plasma: J</span>
+        <span>Power: K</span>
         <span>Restart level: R</span>
       </div>
     </div>
