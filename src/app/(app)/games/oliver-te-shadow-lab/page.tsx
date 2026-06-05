@@ -47,7 +47,7 @@ export default function OliverShadowLabPage() {
           </div>
           <a className="lab-button lab-button-primary mt-8" href="#play">
             <Zap className="h-4 w-4" />
-            Play Button
+            Play
           </a>
         </div>
       </section>

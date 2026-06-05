@@ -168,6 +168,14 @@ export function OliverShadowLabGame() {
         preload() {
           this.load.image("cover", "/games/oliver-te-shadow-lab/cover-art.png");
           this.load.image("sheet", "/games/oliver-te-shadow-lab/oliver-character-sheet.png");
+          this.load.spritesheet("oliver-player", "/games/oliver-te/sprites/player/oliver-player-spritesheet.png", {
+            frameWidth: 128,
+            frameHeight: 128,
+          });
+          this.load.spritesheet("enemy-shadow-imp", "/games/oliver-te/sprites/enemies/enemy-shadow-imp-spritesheet.png", {
+            frameWidth: 128,
+            frameHeight: 128,
+          });
           levelBackgrounds.forEach((path, index) => this.load.image(`level-bg-${index}`, path));
         }
 
@@ -175,8 +183,31 @@ export function OliverShadowLabGame() {
           this.cursors = this.input.keyboard!.createCursorKeys();
           this.wasd = this.input.keyboard!.addKeys("W,A,S,D,SPACE,J,K,R") as Record<string, Phaser.Input.Keyboard.Key>;
           this.createGeneratedTextures();
+          this.createPlayerAnimations();
+          this.createEnemyAnimations();
           this.createLevel(0);
           this.input.keyboard!.on("keydown-R", () => this.createLevel(this.levelIndex));
+        }
+
+        createPlayerAnimations() {
+          if (this.anims.exists("oliver-idle")) return;
+          this.anims.create({ key: "oliver-idle", frames: this.anims.generateFrameNumbers("oliver-player", { start: 0, end: 7 }), frameRate: 8, repeat: -1 });
+          this.anims.create({ key: "oliver-run", frames: this.anims.generateFrameNumbers("oliver-player", { start: 12, end: 23 }), frameRate: 14, repeat: -1 });
+          this.anims.create({ key: "oliver-jump", frames: this.anims.generateFrameNumbers("oliver-player", { start: 24, end: 31 }), frameRate: 10, repeat: 0 });
+          this.anims.create({ key: "oliver-climb", frames: this.anims.generateFrameNumbers("oliver-player", { start: 36, end: 43 }), frameRate: 10, repeat: -1 });
+          this.anims.create({ key: "oliver-attack", frames: this.anims.generateFrameNumbers("oliver-player", { start: 48, end: 59 }), frameRate: 18, repeat: 0 });
+          this.anims.create({ key: "oliver-special", frames: this.anims.generateFrameNumbers("oliver-player", { start: 60, end: 71 }), frameRate: 18, repeat: 0 });
+          this.anims.create({ key: "oliver-hurt", frames: this.anims.generateFrameNumbers("oliver-player", { start: 72, end: 77 }), frameRate: 10, repeat: 0 });
+          this.anims.create({ key: "oliver-death", frames: this.anims.generateFrameNumbers("oliver-player", { start: 78, end: 83 }), frameRate: 8, repeat: 0 });
+          this.anims.create({ key: "oliver-victory", frames: this.anims.generateFrameNumbers("oliver-player", { start: 84, end: 95 }), frameRate: 10, repeat: -1 });
+        }
+
+        createEnemyAnimations() {
+          if (this.anims.exists("shadow-imp-walk")) return;
+          this.anims.create({ key: "shadow-imp-idle", frames: this.anims.generateFrameNumbers("enemy-shadow-imp", { start: 0, end: 7 }), frameRate: 8, repeat: -1 });
+          this.anims.create({ key: "shadow-imp-walk", frames: this.anims.generateFrameNumbers("enemy-shadow-imp", { start: 8, end: 15 }), frameRate: 10, repeat: -1 });
+          this.anims.create({ key: "shadow-imp-attack", frames: this.anims.generateFrameNumbers("enemy-shadow-imp", { start: 16, end: 23 }), frameRate: 12, repeat: 0 });
+          this.anims.create({ key: "shadow-imp-death", frames: this.anims.generateFrameNumbers("enemy-shadow-imp", { start: 24, end: 31 }), frameRate: 10, repeat: 0 });
         }
 
         createGeneratedTextures() {
@@ -292,12 +323,13 @@ export function OliverShadowLabGame() {
             this.platforms.add(platform);
           });
 
-          this.player = this.physics.add.sprite(70, 450, "");
+          this.player = this.physics.add.sprite(70, 450, "oliver-player", 0);
           this.player.setCollideWorldBounds(true);
           this.player.setDragX(650);
           this.player.setMaxVelocity(250, 620);
-          this.player.setTexture("oliver-hero").setDisplaySize(55, 55);
-          this.player.body.setSize(34, 50).setOffset(28, 36);
+          this.player.setDisplaySize(90, 90);
+          this.player.body.setSize(44, 70).setOffset(42, 42);
+          this.player.play("oliver-idle");
 
           this.enemies = this.physics.add.group();
           level.enemies.forEach(([x, y, type]) => this.spawnEnemy(Number(x), Number(y), String(type)));
@@ -385,6 +417,17 @@ export function OliverShadowLabGame() {
         }
 
         spawnEnemy(x: number, y: number, type: string) {
+          if (type === "bot") {
+            const enemy = this.add.sprite(x, y, "enemy-shadow-imp", 8).setDisplaySize(58, 58);
+            this.physics.add.existing(enemy);
+            const arcadeBody = enemy.body as Phaser.Physics.Arcade.Body;
+            arcadeBody.setSize(52, 70).setOffset(38, 34);
+            arcadeBody.setCollideWorldBounds(true);
+            arcadeBody.setVelocityX(-70);
+            enemy.play("shadow-imp-walk");
+            this.enemies.add(enemy);
+            return;
+          }
           const texture = type === "spider" ? "enemy-spider" : type === "brute" ? "enemy-brute" : "enemy-bot";
           const enemy = this.add.sprite(x, y, texture).setDisplaySize(type === "brute" ? 58 : type === "spider" ? 58 : 46, type === "brute" ? 64 : 50);
           this.physics.add.existing(enemy);
@@ -413,6 +456,8 @@ export function OliverShadowLabGame() {
           if (left) body.setAccelerationX(-900);
           else if (right) body.setAccelerationX(900);
           else body.setAccelerationX(0);
+          if (left) this.player.setFlipX(true);
+          if (right) this.player.setFlipX(false);
 
           if (body.blocked.down) this.jumps = 0;
           if (jumpPressed && this.jumps < 2) {
@@ -422,12 +467,12 @@ export function OliverShadowLabGame() {
 
           if (Phaser.Input.Keyboard.JustDown(this.wasd.J) || Phaser.Input.Keyboard.JustDown(this.wasd.K)) {
             this.attackUntil = this.time.now + 260;
-            this.player.setTexture("oliver-attack").setDisplaySize(65, 55);
+            this.player.play("oliver-attack", true);
           }
           if (this.attackUntil && this.time.now > this.attackUntil) {
             this.attackUntil = 0;
-            this.player.setTexture("oliver-hero").setDisplaySize(55, 55);
           }
+          this.updatePlayerAnimation(left, right);
 
           this.enemies.getChildren().forEach((child) => {
             const obj = child as Phaser.GameObjects.Sprite;
@@ -463,6 +508,7 @@ export function OliverShadowLabGame() {
           this.hp -= 1;
           this.invulnerableUntil = this.time.now + 1100;
           this.messageText.setText(reason);
+          this.player.play("oliver-hurt", true);
           this.player.setTint(0xff3b6b);
           this.time.delayedCall(260, () => this.player.clearTint());
           if (this.hp <= 0) {
@@ -488,6 +534,20 @@ export function OliverShadowLabGame() {
 
         updateHud() {
           this.hudText?.setText(`HP ${"■".repeat(this.hp)}${"□".repeat(3 - this.hp)} · XP ${this.score} · Orbs are energy · Attack disables enemies`);
+        }
+
+        updatePlayerAnimation(left: boolean, right: boolean) {
+          if (this.attackUntil > this.time.now) return;
+          if (this.invulnerableUntil > this.time.now && this.player.anims.currentAnim?.key === "oliver-hurt") return;
+          if (!this.player.body.blocked.down) {
+            if (this.player.anims.currentAnim?.key !== "oliver-jump") this.player.play("oliver-jump", true);
+            return;
+          }
+          if (left || right) {
+            this.player.play("oliver-run", true);
+            return;
+          }
+          this.player.play("oliver-idle", true);
         }
       }
 

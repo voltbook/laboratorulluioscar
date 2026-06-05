@@ -7,7 +7,8 @@
     "gameIcon": "/games/oliver-te/marketing/game-icon.png",
     "level01Background": "/games/oliver-te/backgrounds/level-01-lab-escape-bg.png",
     "tilesetLabIndustrial": "/games/oliver-te/tilesets/tileset-lab-industrial.png",
-    "player": "/games/oliver-te/sprites/player/oliver-player-spritesheet.png"
+    "player": "/games/oliver-te/sprites/player/oliver-player-spritesheet.png",
+    "shadowImp": "/games/oliver-te/sprites/enemies/enemy-shadow-imp-spritesheet.png"
   },
   "backgrounds": {
     "level01": "/games/oliver-te/backgrounds/level-01-lab-escape-bg.png",
@@ -24,7 +25,12 @@
       "frameHeight": 128
     },
     "enemies": {
-      "shadowImp": "/games/oliver-te/sprites/enemies/enemy-shadow-imp-spritesheet.png",
+      "shadowImp": {
+        "key": "enemy-shadow-imp",
+        "path": "/games/oliver-te/sprites/enemies/enemy-shadow-imp-spritesheet.png",
+        "frameWidth": 128,
+        "frameHeight": 128
+      },
       "cyberDrone": "/games/oliver-te/sprites/enemies/enemy-cyber-drone-spritesheet.png",
       "spiderBot": "/games/oliver-te/sprites/enemies/enemy-spider-bot-spritesheet.png",
       "shadowBrute": "/games/oliver-te/sprites/enemies/enemy-shadow-brute-spritesheet.png"
