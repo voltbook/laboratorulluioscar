@@ -185,17 +185,31 @@ export function OliverShadowLabGame() {
             frameWidth: 128,
             frameHeight: 128,
           });
+          this.load.spritesheet("enemy-spider-bot", "/games/oliver-te/sprites/enemies/enemy-spider-bot-spritesheet.png", {
+            frameWidth: 128,
+            frameHeight: 128,
+          });
+          this.load.spritesheet("enemy-shadow-brute", "/games/oliver-te/sprites/enemies/enemy-shadow-brute-spritesheet.png", {
+            frameWidth: 128,
+            frameHeight: 128,
+          });
+          this.load.spritesheet("boss-ai-core-guardian", "/games/oliver-te/sprites/bosses/boss-ai-core-guardian-spritesheet.png", {
+            frameWidth: 256,
+            frameHeight: 256,
+          });
           levelBackgrounds.forEach((path, index) => this.load.image(`level-bg-${index}`, path));
         }
 
         create() {
           this.cursors = this.input.keyboard!.createCursorKeys();
-          this.wasd = this.input.keyboard!.addKeys("W,A,S,D,SPACE,J,K,R") as Record<string, Phaser.Input.Keyboard.Key>;
+          this.wasd = this.input.keyboard!.addKeys("W,A,S,D,SPACE,J,K,R,N") as Record<string, Phaser.Input.Keyboard.Key>;
           this.createGeneratedTextures();
           this.createPlayerAnimations();
           this.createEnemyAnimations();
-          this.createLevel(0);
+          const levelFromHash = Number(window.location.hash.match(/level-(\d+)/)?.[1] ?? 1) - 1;
+          this.createLevel(Math.min(Math.max(levelFromHash, 0), levels.length - 1));
           this.input.keyboard!.on("keydown-R", () => this.createLevel(this.levelIndex));
+          this.input.keyboard!.on("keydown-N", () => this.createLevel((this.levelIndex + 1) % levels.length));
         }
 
         createPlayerAnimations() {
@@ -220,6 +234,10 @@ export function OliverShadowLabGame() {
           this.anims.create({ key: "cyber-drone-fly", frames: this.anims.generateFrameNumbers("enemy-cyber-drone", { start: 0, end: 15 }), frameRate: 14, repeat: -1 });
           this.anims.create({ key: "cyber-drone-shoot", frames: this.anims.generateFrameNumbers("enemy-cyber-drone", { start: 16, end: 23 }), frameRate: 12, repeat: -1 });
           this.anims.create({ key: "cyber-drone-destroyed", frames: this.anims.generateFrameNumbers("enemy-cyber-drone", { start: 24, end: 31 }), frameRate: 10, repeat: 0 });
+          this.anims.create({ key: "spider-bot-crawl", frames: this.anims.generateFrameNumbers("enemy-spider-bot", { start: 8, end: 15 }), frameRate: 14, repeat: -1 });
+          this.anims.create({ key: "shadow-brute-walk", frames: this.anims.generateFrameNumbers("enemy-shadow-brute", { start: 8, end: 15 }), frameRate: 9, repeat: -1 });
+          this.anims.create({ key: "ai-core-idle", frames: this.anims.generateFrameNumbers("boss-ai-core-guardian", { start: 0, end: 7 }), frameRate: 8, repeat: -1 });
+          this.anims.create({ key: "ai-core-laser", frames: this.anims.generateFrameNumbers("boss-ai-core-guardian", { start: 16, end: 23 }), frameRate: 10, repeat: -1 });
         }
 
         createGeneratedTextures() {
@@ -373,9 +391,16 @@ export function OliverShadowLabGame() {
 
           if ("boss" in level && level.boss) {
             const [bossX, bossY] = level.boss;
-            const boss = this.add.sprite(Number(bossX), Number(bossY), "ai-core").setDisplaySize(92, 92);
-            this.add.text(Number(bossX) - 35, Number(bossY) - 6, "AI CORE", { fontFamily: "monospace", fontSize: "12px", color: "#ffb8ff" });
+            const boss = this.add.sprite(Number(bossX), Number(bossY), "boss-ai-core-guardian", 0).setDisplaySize(150, 150);
+            boss.play("ai-core-idle");
+            boss.setData("hp", 10);
+            boss.setData("maxHp", 10);
+            boss.setData("type", "boss");
+            this.add.text(Number(bossX) - 39, Number(bossY) - 72, "AI CORE", { fontFamily: "monospace", fontSize: "12px", color: "#ffb8ff" });
             this.physics.add.existing(boss);
+            const bossBody = boss.body as Phaser.Physics.Arcade.Body;
+            bossBody.setSize(150, 150).setOffset(53, 64);
+            bossBody.setImmovable(true);
             this.enemies.add(boss);
           }
 
@@ -447,16 +472,22 @@ export function OliverShadowLabGame() {
             arcadeBody.setSize(52, 70).setOffset(38, 34);
             arcadeBody.setCollideWorldBounds(true);
             arcadeBody.setVelocityX(-70);
+            enemy.setData("hp", 1);
+            enemy.setData("type", "imp");
             enemy.play("shadow-imp-walk");
             this.enemies.add(enemy);
             return;
           }
-          const texture = type === "spider" ? "enemy-spider" : type === "brute" ? "enemy-brute" : "enemy-bot";
-          const enemy = this.add.sprite(x, y, texture).setDisplaySize(type === "brute" ? 58 : type === "spider" ? 58 : 46, type === "brute" ? 64 : 50);
+          const texture = type === "spider" ? "enemy-spider-bot" : "enemy-shadow-brute";
+          const enemy = this.add.sprite(x, y, texture, 8).setDisplaySize(type === "brute" ? 88 : 66, type === "brute" ? 88 : 54);
           this.physics.add.existing(enemy);
           const arcadeBody = enemy.body as Phaser.Physics.Arcade.Body;
+          arcadeBody.setSize(type === "brute" ? 74 : 58, type === "brute" ? 82 : 42).setOffset(type === "brute" ? 28 : 35, type === "brute" ? 30 : 52);
           arcadeBody.setCollideWorldBounds(true);
-          arcadeBody.setVelocityX(type === "brute" ? -45 : -70);
+          arcadeBody.setVelocityX(type === "brute" ? -50 : -105);
+          enemy.setData("hp", type === "brute" ? 4 : 2);
+          enemy.setData("type", type);
+          enemy.play(type === "brute" ? "shadow-brute-walk" : "spider-bot-crawl");
           this.enemies.add(enemy);
         }
 
@@ -467,6 +498,8 @@ export function OliverShadowLabGame() {
           body.allowGravity = false;
           body.setSize(58, 42).setOffset(35, 42);
           body.setVelocityX(-80);
+          drone.setData("hp", 2);
+          drone.setData("type", "drone");
           drone.play("cyber-drone-fly");
           this.drones.add(drone);
           this.enemies.add(drone);
@@ -508,6 +541,10 @@ export function OliverShadowLabGame() {
             const obj = child as Phaser.GameObjects.Sprite;
             const enemyBody = obj.body as Phaser.Physics.Arcade.Body | undefined;
             if (!enemyBody) return;
+            if (obj.getData("type") === "boss") {
+              obj.y = 170 + Math.sin(this.time.now / 450) * 8;
+              return;
+            }
             if (obj.y > 505 || obj.x < 35 || obj.x > 925) enemyBody.setVelocityX((enemyBody.velocity.x || 60) * -1);
             obj.setFlipX(enemyBody.velocity.x > 0);
           });
@@ -563,6 +600,19 @@ export function OliverShadowLabGame() {
             const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
             if (distance > 205) return;
             this.spawnSpark(enemy.x, enemy.y, 0xffb000);
+            if (enemy.getData("type") === "boss") {
+              const hp = Number(enemy.getData("hp") ?? 10) - 3;
+              enemy.setData("hp", hp);
+              enemy.setTint(0xff8cff);
+              this.time.delayedCall(140, () => enemy.clearTint());
+              if (hp <= 0) {
+                enemy.destroy();
+                this.score += 250;
+              } else {
+                this.score += 40;
+              }
+              return;
+            }
             enemy.destroy();
             this.score += 35;
           });
@@ -573,8 +623,20 @@ export function OliverShadowLabGame() {
           const target = enemy as Phaser.GameObjects.Sprite;
           this.spawnSpark(target.x, target.y, 0xffb000);
           projectile.destroy();
-          enemy.destroy();
-          this.score += 25;
+          const hp = Number(target.getData("hp") ?? 1) - 1;
+          target.setData("hp", hp);
+          target.setTint(0xffffff);
+          this.time.delayedCall(90, () => target.clearTint());
+          if (target.getData("type") === "boss") {
+            target.play(hp > 4 ? "ai-core-idle" : "ai-core-laser", true);
+            this.flashMessage(`AI Core integrity ${Math.max(0, hp)}/10`);
+          }
+          if (hp <= 0) {
+            enemy.destroy();
+            this.score += target.getData("type") === "boss" ? 250 : 25;
+          } else {
+            this.score += 8;
+          }
           this.energy = Math.min(100, this.energy + 7);
         }
 
@@ -592,8 +654,14 @@ export function OliverShadowLabGame() {
 
         handleEnemy(enemy: Phaser.GameObjects.GameObject) {
           if (this.attackUntil > this.time.now) {
-            enemy.destroy();
-            this.score += 25;
+            const target = enemy as Phaser.GameObjects.Sprite;
+            const hp = Number(target.getData("hp") ?? 1) - 1;
+            target.setData("hp", hp);
+            this.spawnSpark(target.x, target.y, 0x74f7ff);
+            if (hp <= 0) {
+              enemy.destroy();
+              this.score += 25;
+            }
             return;
           }
           this.damage("Enemy hit");

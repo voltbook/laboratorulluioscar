@@ -37,11 +37,26 @@
         "frameWidth": 128,
         "frameHeight": 128
       },
-      "spiderBot": "/games/oliver-te/sprites/enemies/enemy-spider-bot-spritesheet.png",
-      "shadowBrute": "/games/oliver-te/sprites/enemies/enemy-shadow-brute-spritesheet.png"
+      "spiderBot": {
+        "key": "enemy-spider-bot",
+        "path": "/games/oliver-te/sprites/enemies/enemy-spider-bot-spritesheet.png",
+        "frameWidth": 128,
+        "frameHeight": 128
+      },
+      "shadowBrute": {
+        "key": "enemy-shadow-brute",
+        "path": "/games/oliver-te/sprites/enemies/enemy-shadow-brute-spritesheet.png",
+        "frameWidth": 128,
+        "frameHeight": 128
+      }
     },
     "bosses": {
-      "aiCoreGuardian": "/games/oliver-te/sprites/bosses/boss-ai-core-guardian-spritesheet.png"
+      "aiCoreGuardian": {
+        "key": "boss-ai-core-guardian",
+        "path": "/games/oliver-te/sprites/bosses/boss-ai-core-guardian-spritesheet.png",
+        "frameWidth": 256,
+        "frameHeight": 256
+      }
     },
     "collectibles": "/games/oliver-te/sprites/collectibles/collectibles-spritesheet.png",
     "laserTrap": "/games/oliver-te/sprites/traps/trap-laser-spritesheet.png",
