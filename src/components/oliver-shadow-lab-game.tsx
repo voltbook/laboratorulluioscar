@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { type PointerEvent, useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUp, Crosshair, Keyboard, Maximize2, Pause, Play, RotateCcw, X, Zap } from "lucide-react";
 
 type EnemyType = "bot" | "spider" | "brute";
@@ -177,6 +177,8 @@ export function OliverShadowLabGame() {
         bossBarFill?: Phaser.GameObjects.Rectangle;
         bossLabel?: Phaser.GameObjects.Text;
         transitioning = false;
+        virtualControls = { left: false, right: false, jump: false };
+        virtualJumpQueued = false;
 
         constructor() {
           super("shadow-lab");
@@ -215,6 +217,17 @@ export function OliverShadowLabGame() {
         create() {
           this.cursors = this.input.keyboard!.createCursorKeys();
           this.wasd = this.input.keyboard!.addKeys("W,A,S,D,SPACE,J,K,R,N") as Record<string, Phaser.Input.Keyboard.Key>;
+          const handleVirtualControl = (event: Event) => {
+            const detail = (event as CustomEvent<{ code: string; pressed: boolean }>).detail;
+            if (!detail) return;
+            if (detail.code === "ArrowLeft") this.virtualControls.left = detail.pressed;
+            if (detail.code === "ArrowRight") this.virtualControls.right = detail.pressed;
+            if (detail.code === "Space" && detail.pressed) this.virtualJumpQueued = true;
+            if (detail.code === "KeyJ" && detail.pressed) this.firePlasmaBolt();
+            if (detail.code === "KeyK" && detail.pressed) this.castShockwave();
+          };
+          window.addEventListener("oliver-shadow-lab:control", handleVirtualControl);
+          this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => window.removeEventListener("oliver-shadow-lab:control", handleVirtualControl));
           this.createGeneratedTextures();
           this.createPlayerAnimations();
           this.createEnemyAnimations();
@@ -250,8 +263,8 @@ export function OliverShadowLabGame() {
           this.anims.create({ key: "cyber-drone-destroyed", frames: this.anims.generateFrameNumbers("enemy-cyber-drone", { start: 24, end: 31 }), frameRate: 10, repeat: 0 });
           this.anims.create({ key: "spider-bot-crawl", frames: this.anims.generateFrameNumbers("enemy-spider-bot", { start: 8, end: 15 }), frameRate: 14, repeat: -1 });
           this.anims.create({ key: "shadow-brute-walk", frames: this.anims.generateFrameNumbers("enemy-shadow-brute", { start: 8, end: 15 }), frameRate: 9, repeat: -1 });
-          this.anims.create({ key: "ai-core-idle", frames: this.anims.generateFrameNumbers("boss-ai-core-guardian", { start: 0, end: 7 }), frameRate: 8, repeat: -1 });
-          this.anims.create({ key: "ai-core-laser", frames: this.anims.generateFrameNumbers("boss-ai-core-guardian", { start: 16, end: 23 }), frameRate: 10, repeat: -1 });
+          this.anims.create({ key: "ai-core-idle", frames: this.anims.generateFrameNumbers("boss-ai-core-guardian", { start: 0, end: 7 }), frameRate: 6, repeat: -1 });
+          this.anims.create({ key: "ai-core-laser", frames: this.anims.generateFrameNumbers("boss-ai-core-guardian", { start: 16, end: 23 }), frameRate: 8, repeat: -1 });
         }
 
         createGeneratedTextures() {
@@ -403,8 +416,9 @@ export function OliverShadowLabGame() {
 
           this.player = this.physics.add.sprite(70, 450, "oliver-player", 0);
           this.player.setCollideWorldBounds(true);
-          this.player.setDragX(850);
-          this.player.setMaxVelocity(340, 660);
+          this.player.setDamping(true);
+          this.player.setDragX(0.82);
+          this.player.setMaxVelocity(245, 660);
           this.player.setDisplaySize(90, 90);
           this.player.body.setSize(44, 70).setOffset(42, 42);
           this.player.play("oliver-idle");
@@ -440,7 +454,7 @@ export function OliverShadowLabGame() {
 
           if ("boss" in level && level.boss) {
             const [bossX, bossY] = level.boss;
-            const bossScale = index === levels.length - 1 ? 186 : 150;
+            const bossScale = index === levels.length - 1 ? 166 : 138;
             const boss = this.add.sprite(Number(bossX), Number(bossY), "boss-ai-core-guardian", 0).setDisplaySize(bossScale, bossScale);
             boss.play("ai-core-idle");
             boss.setData("hp", level.bossHp ?? 10);
@@ -450,7 +464,7 @@ export function OliverShadowLabGame() {
             this.add.text(Number(bossX) - 39, Number(bossY) - 72, index === levels.length - 1 ? "WORLD CORE" : "AI CORE", { fontFamily: "monospace", fontSize: "12px", color: "#ffb8ff" });
             this.physics.add.existing(boss);
             const bossBody = boss.body as Phaser.Physics.Arcade.Body;
-            bossBody.setSize(150, 150).setOffset(53, 64);
+            bossBody.setSize(index === levels.length - 1 ? 132 : 116, index === levels.length - 1 ? 132 : 116).setOffset(62, 72);
             bossBody.setImmovable(true);
             this.enemies.add(boss);
             this.createBossHud();
@@ -667,10 +681,19 @@ export function OliverShadowLabGame() {
             });
         }
 
+        getSideAimAngle(sourceX: number, sourceY: number, targetX: number, targetY: number, maxSlope = 0.34) {
+          const direction = targetX >= sourceX ? 1 : -1;
+          const baseAngle = direction > 0 ? 0 : Math.PI;
+          const desiredAngle = Phaser.Math.Angle.Between(sourceX, sourceY, targetX, targetY);
+          const delta = Phaser.Math.Angle.Wrap(desiredAngle - baseAngle);
+          return baseAngle + Phaser.Math.Clamp(delta, -maxSlope, maxSlope);
+        }
+
         fireEnemyBolt(source: Phaser.GameObjects.Sprite, speed = 225, angleOffset = 0) {
           if (!this.player?.active) return;
-          const angle = Phaser.Math.Angle.Between(source.x, source.y, this.player.x, this.player.y) + angleOffset;
+          const angle = this.getSideAimAngle(source.x, source.y, this.player.x, this.player.y, 0.32) + angleOffset;
           const bolt = this.physics.add.sprite(source.x, source.y, "enemy-bolt").setDisplaySize(26, 26).setDepth(4);
+          bolt.setRotation(angle);
           bolt.body.allowGravity = false;
           this.physics.velocityFromRotation(angle, speed, bolt.body.velocity);
           this.enemyProjectiles.add(bolt);
@@ -692,13 +715,21 @@ export function OliverShadowLabGame() {
         update() {
           if (this.transitioning) return;
           const body = this.player.body;
-          const left = this.cursors.left.isDown || this.wasd.A.isDown;
-          const right = this.cursors.right.isDown || this.wasd.D.isDown;
-          const jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.wasd.W) || Phaser.Input.Keyboard.JustDown(this.wasd.SPACE);
+          const left = this.cursors.left.isDown || this.wasd.A.isDown || this.virtualControls.left;
+          const right = this.cursors.right.isDown || this.wasd.D.isDown || this.virtualControls.right;
+          const jumpPressed =
+            Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
+            Phaser.Input.Keyboard.JustDown(this.wasd.W) ||
+            Phaser.Input.Keyboard.JustDown(this.wasd.SPACE) ||
+            this.virtualJumpQueued;
+          this.virtualJumpQueued = false;
 
-          if (left) body.setAccelerationX(-1250);
-          else if (right) body.setAccelerationX(1250);
-          else body.setAccelerationX(0);
+          if (left) body.setAccelerationX(-920);
+          else if (right) body.setAccelerationX(920);
+          else {
+            body.setAccelerationX(0);
+            body.setVelocityX(Math.abs(body.velocity.x) < 12 ? 0 : body.velocity.x * 0.78);
+          }
           if (left) {
             this.facing = -1;
             this.player.setFlipX(true);
@@ -732,7 +763,7 @@ export function OliverShadowLabGame() {
               if (this.time.now > Number(obj.getData("nextShot") ?? 0)) {
                 const isFinal = this.levelIndex === levels.length - 1;
                 const spreadCount = isFinal ? 5 : this.levelIndex >= 24 ? 3 : 1;
-                obj.setData("nextShot", this.time.now + Math.max(isFinal ? 520 : 620, 1250 - this.levelIndex * 12));
+                obj.setData("nextShot", this.time.now + Math.max(isFinal ? 820 : 680, 1350 - this.levelIndex * 10));
                 obj.play("ai-core-laser", true);
                 this.fireEnemySpread(obj, spreadCount, 270 + this.levelIndex * 3);
                 if (isFinal) {
@@ -769,7 +800,7 @@ export function OliverShadowLabGame() {
 
           this.projectiles.getChildren().forEach((child) => {
             const obj = child as Phaser.GameObjects.Sprite;
-            if (obj.x < -40 || obj.x > 1000) obj.destroy();
+            if (obj.x < -40 || obj.x > 1000 || obj.y < -40 || obj.y > 620) obj.destroy();
           });
           this.enemyProjectiles.getChildren().forEach((child) => {
             const obj = child as Phaser.GameObjects.Sprite;
@@ -785,16 +816,17 @@ export function OliverShadowLabGame() {
           if (this.time.now < this.weaponCooldownUntil) return;
           this.weaponCooldownUntil = this.time.now + 260;
           this.attackUntil = this.time.now + 220;
-          const shotDirection = this.getPlasmaDirection();
+          const shot = this.getPlasmaShot();
+          const shotDirection = shot.direction;
           this.facing = shotDirection;
           this.player.setFlipX(shotDirection < 0);
           this.player.play("oliver-attack", true);
           const projectile = this.physics.add.sprite(this.player.x + shotDirection * 42, this.player.y + 4, "plasma-bolt").setDisplaySize(58, 22);
           projectile.setFlipX(shotDirection < 0);
+          projectile.setRotation(shot.angle);
           projectile.setDepth(4);
           projectile.body.allowGravity = false;
-          projectile.body.setVelocityX(shotDirection * 650);
-          projectile.body.setVelocityY(0);
+          this.physics.velocityFromRotation(shot.angle, 650, projectile.body.velocity);
           projectile.body.setSize(52, 16);
           this.projectiles.add(projectile);
           this.spawnMuzzleFlash(this.player.x + shotDirection * 38, this.player.y + 2, shotDirection);
@@ -803,15 +835,22 @@ export function OliverShadowLabGame() {
           this.time.delayedCall(900, () => projectile.destroy());
         }
 
-        getPlasmaDirection() {
+        getPlasmaShot() {
           const candidates = this.enemies
             .getChildren()
             .map((child) => child as Phaser.GameObjects.Sprite)
-            .filter((enemy) => enemy.active && Math.abs(enemy.y - this.player.y) < 190)
+            .filter((enemy) => enemy.active && Math.abs(enemy.y - this.player.y) < 165)
             .sort((a, b) => Math.abs(a.x - this.player.x) - Math.abs(b.x - this.player.x));
           const nearest = candidates[0];
-          if (nearest && Math.abs(nearest.x - this.player.x) > 18) return nearest.x > this.player.x ? 1 : -1;
-          return this.facing || 1;
+          if (nearest && Math.abs(nearest.x - this.player.x) > 18) {
+            const direction = nearest.x > this.player.x ? 1 : -1;
+            return {
+              direction,
+              angle: this.getSideAimAngle(this.player.x, this.player.y + 4, nearest.x, nearest.y, 0.24),
+            };
+          }
+          const direction = this.facing || 1;
+          return { direction, angle: direction > 0 ? 0 : Math.PI };
         }
 
         castShockwave() {
@@ -1173,9 +1212,22 @@ export function OliverShadowLabGame() {
       KeyK: "k",
       Space: " ",
     };
+    window.dispatchEvent(new CustomEvent("oliver-shadow-lab:control", { detail: { code, pressed: type === "keydown" } }));
     const event = new KeyboardEvent(type, { code, key: keyMap[code] ?? code, bubbles: true });
     window.dispatchEvent(event);
     document.dispatchEvent(event);
+  };
+
+  const handleControlDown = (event: PointerEvent<HTMLButtonElement>, code: string) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    pressVirtualKey(code, "keydown");
+  };
+
+  const handleControlUp = (event: PointerEvent<HTMLButtonElement>, code: string) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    pressVirtualKey(code, "keyup");
   };
 
   const mobileControls = [
@@ -1237,10 +1289,10 @@ export function OliverShadowLabGame() {
                 aria-label={`${label} control`}
                 className="group grid h-16 place-items-center border border-primary/35 bg-black/60 font-mono text-[0.58rem] uppercase tracking-[0.08em] text-white shadow-[0_0_24px_rgba(0,255,102,0.12),inset_0_0_18px_rgba(0,255,102,0.08)] backdrop-blur transition active:scale-[0.94] active:bg-primary/25"
                 key={label}
-                onPointerDown={() => pressVirtualKey(code, "keydown")}
-                onPointerCancel={() => pressVirtualKey(code, "keyup")}
-                onPointerLeave={() => pressVirtualKey(code, "keyup")}
-                onPointerUp={() => pressVirtualKey(code, "keyup")}
+                onPointerDown={(event) => handleControlDown(event, code)}
+                onPointerCancel={(event) => handleControlUp(event, code)}
+                onPointerLeave={(event) => handleControlUp(event, code)}
+                onPointerUp={(event) => handleControlUp(event, code)}
                 type="button"
               >
                 <Icon className="h-5 w-5 text-primary group-active:text-white" />
@@ -1258,10 +1310,10 @@ export function OliverShadowLabGame() {
                 aria-label={`${label} control`}
                 className="group grid h-16 place-items-center border border-cyan-300/35 bg-black/60 font-mono text-[0.56rem] uppercase tracking-[0.08em] text-white shadow-[0_0_24px_rgba(51,204,255,0.12),inset_0_0_18px_rgba(51,204,255,0.08)] backdrop-blur transition active:scale-[0.94] active:bg-cyan-300/20"
                 key={label}
-                onPointerDown={() => pressVirtualKey(code, "keydown")}
-                onPointerCancel={() => pressVirtualKey(code, "keyup")}
-                onPointerLeave={() => pressVirtualKey(code, "keyup")}
-                onPointerUp={() => pressVirtualKey(code, "keyup")}
+                onPointerDown={(event) => handleControlDown(event, code)}
+                onPointerCancel={(event) => handleControlUp(event, code)}
+                onPointerLeave={(event) => handleControlUp(event, code)}
+                onPointerUp={(event) => handleControlUp(event, code)}
                 type="button"
               >
                 <Icon className="h-5 w-5 text-cyan-200 group-active:text-white" />
