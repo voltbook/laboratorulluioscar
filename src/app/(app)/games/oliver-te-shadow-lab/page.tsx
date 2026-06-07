@@ -1,6 +1,7 @@
 import Image from "next/image";
-import { Bot, CheckCircle2, MessageSquare, Star, Trophy, Zap } from "lucide-react";
+import { Bot, CheckCircle2, MessageSquare, Star, Trophy } from "lucide-react";
 import { OliverShadowLabGame } from "@/components/oliver-shadow-lab-game";
+import { OliverShadowLabPlayButton } from "@/components/oliver-shadow-lab-play-button";
 
 const levels = [
   ["Level 1 — Laboratory Escape", "Tutorial jumps, small robots and energy doors."],
@@ -45,10 +46,7 @@ export default function OliverShadowLabPage() {
           <div className="mt-6 flex flex-wrap gap-2">
             {["Retro platformer", "Phaser 3", "Educational action", "AI laboratory", "5 levels"].map((tag) => <span className="lab-badge" key={tag}>{tag}</span>)}
           </div>
-          <a className="lab-button lab-button-primary mt-8" href="#play">
-            <Zap className="h-4 w-4" />
-            Play
-          </a>
+          <OliverShadowLabPlayButton />
         </div>
       </section>
 

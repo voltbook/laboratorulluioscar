@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ArrowUp, Crosshair, Keyboard, Maximize2, Pause, Play, RotateCcw, Zap } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUp, Crosshair, Keyboard, Maximize2, Pause, Play, RotateCcw, X, Zap } from "lucide-react";
 
 const levels = [
   {
@@ -139,6 +139,7 @@ export function OliverShadowLabGame() {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const gameRef = useRef<{ destroy: (removeCanvas: boolean, noReturn?: boolean) => void; scene: { getScene: (key: string) => unknown } } | null>(null);
   const [running, setRunning] = useState(false);
+  const [gameMode, setGameMode] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -630,6 +631,7 @@ export function OliverShadowLabGame() {
             if (!enemyBody) return;
             if (obj.getData("type") === "boss") {
               obj.y = 170 + Math.sin(this.time.now / 450) * 8;
+              obj.setFlipX(this.player.x < obj.x);
               if (this.time.now > Number(obj.getData("nextShot") ?? 0)) {
                 obj.setData("nextShot", this.time.now + 1250);
                 obj.play("ai-core-laser", true);
@@ -641,7 +643,7 @@ export function OliverShadowLabGame() {
               return;
             }
             if (obj.y > 505 || obj.x < 35 || obj.x > 925) enemyBody.setVelocityX((enemyBody.velocity.x || 60) * -1);
-            obj.setFlipX(enemyBody.velocity.x > 0);
+            obj.setFlipX(enemyBody.velocity.x < 0);
           });
 
           this.drones.getChildren().forEach((child) => {
@@ -649,6 +651,7 @@ export function OliverShadowLabGame() {
             const droneBody = obj.body as Phaser.Physics.Arcade.Body | undefined;
             if (!droneBody) return;
             if (obj.x < 120 || obj.x > 850) droneBody.setVelocityX((droneBody.velocity.x || 80) * -1);
+            obj.setFlipX(this.player.x < obj.x);
             obj.y += Math.sin(this.time.now / 250) * 0.45;
             if (this.time.now > Number(obj.getData("nextShot") ?? 0)) {
               obj.setData("nextShot", this.time.now + Phaser.Math.Between(1500, 2500));
@@ -678,16 +681,31 @@ export function OliverShadowLabGame() {
           if (this.time.now < this.weaponCooldownUntil) return;
           this.weaponCooldownUntil = this.time.now + 260;
           this.attackUntil = this.time.now + 220;
+          const shotDirection = this.getPlasmaDirection();
+          this.facing = shotDirection;
+          this.player.setFlipX(shotDirection < 0);
           this.player.play("oliver-attack", true);
-          const projectile = this.physics.add.sprite(this.player.x + this.facing * 42, this.player.y + 4, "plasma-bolt").setDisplaySize(58, 22);
-          projectile.setFlipX(this.facing < 0);
+          const projectile = this.physics.add.sprite(this.player.x + shotDirection * 42, this.player.y + 4, "plasma-bolt").setDisplaySize(58, 22);
+          projectile.setFlipX(shotDirection < 0);
           projectile.setDepth(4);
           projectile.body.allowGravity = false;
-          projectile.body.setVelocityX(this.facing * 610);
+          projectile.body.setVelocityX(shotDirection * 650);
+          projectile.body.setVelocityY(0);
           projectile.body.setSize(52, 16);
           this.projectiles.add(projectile);
           this.tweens.add({ targets: projectile, alpha: 0.72, duration: 70, yoyo: true, repeat: 6 });
           this.time.delayedCall(900, () => projectile.destroy());
+        }
+
+        getPlasmaDirection() {
+          const candidates = this.enemies
+            .getChildren()
+            .map((child) => child as Phaser.GameObjects.Sprite)
+            .filter((enemy) => enemy.active && Math.abs(enemy.y - this.player.y) < 190)
+            .sort((a, b) => Math.abs(a.x - this.player.x) - Math.abs(b.x - this.player.x));
+          const nearest = candidates[0];
+          if (nearest && Math.abs(nearest.x - this.player.x) > 18) return nearest.x > this.player.x ? 1 : -1;
+          return this.facing || 1;
         }
 
         castShockwave() {
@@ -866,6 +884,12 @@ export function OliverShadowLabGame() {
     };
   }, []);
 
+  useEffect(() => {
+    const activate = () => setGameMode(true);
+    window.addEventListener("oliver-shadow-lab:launch", activate);
+    return () => window.removeEventListener("oliver-shadow-lab:launch", activate);
+  }, []);
+
   const togglePause = () => {
     const scene = gameRef.current?.scene.getScene("shadow-lab") as { scene?: { isPaused: () => boolean; pause: () => void; resume: () => void } } | undefined;
     if (!scene?.scene) return;
@@ -883,6 +907,30 @@ export function OliverShadowLabGame() {
     gameRef.current = null;
     setRunning(false);
     window.setTimeout(() => window.location.reload(), 50);
+  };
+
+  const enterGameMode = async () => {
+    const shell = document.getElementById("oliver-shadow-lab-shell");
+    setGameMode(true);
+    try {
+      if (shell && !document.fullscreenElement) await shell.requestFullscreen();
+      const orientation = screen.orientation as ScreenOrientation & { lock?: (orientation: "landscape") => Promise<void> };
+      await orientation.lock?.("landscape").catch(() => undefined);
+    } catch {
+      // Fullscreen and orientation lock depend on browser support and user gesture timing.
+    }
+    window.dispatchEvent(new Event("resize"));
+  };
+
+  const exitGameMode = async () => {
+    setGameMode(false);
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      await screen.orientation.unlock?.();
+    } catch {
+      // Browser support varies; leaving game mode still restores the page layout.
+    }
+    window.dispatchEvent(new Event("resize"));
   };
 
   const pressVirtualKey = (code: string, type: "keydown" | "keyup") => {
@@ -916,8 +964,8 @@ export function OliverShadowLabGame() {
   ];
 
   return (
-    <div className="terminal-panel overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-primary/15 bg-black/30 p-3">
+    <div className={`terminal-panel shadow-lab-shell relative overflow-hidden ${gameMode ? "shadow-lab-playing" : ""}`} id="oliver-shadow-lab-shell">
+      <div className="game-chrome flex flex-wrap items-center justify-between gap-3 border-b border-primary/15 bg-black/30 p-3">
         <div>
           <div className="font-mono text-sm uppercase tracking-[0.16em] text-primary">Oliver Te runtime // Phaser 3</div>
           <div className="mt-1 font-mono text-[0.68rem] uppercase tracking-[0.14em] text-muted-foreground">Mission controls armed · Plasma online · Shadow pulse requires energy</div>
@@ -931,39 +979,68 @@ export function OliverShadowLabGame() {
             <RotateCcw className="h-4 w-4" />
             Restart
           </button>
-          <button className="lab-button h-9 px-3" onClick={() => hostRef.current?.requestFullscreen()} type="button">
+          <button className="lab-button h-9 px-3" onClick={enterGameMode} type="button">
             <Maximize2 className="h-4 w-4" />
             <span className="sr-only">Fullscreen</span>
           </button>
         </div>
       </div>
-      <div className="border-b border-primary/15 bg-black/45 p-3 md:hidden">
-        <div className="mb-2 flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
-          <Keyboard className="h-3.5 w-3.5 text-primary" />
-          Touch controls
-        </div>
-        <div className="grid grid-cols-5 gap-2">
-          {mobileControls.map(({ label, key, code, icon: Icon, help }) => (
+      <div className="shadow-lab-stage relative bg-black">
+        <div ref={hostRef} className="shadow-lab-canvas-host min-h-[320px] bg-black" />
+        {gameMode ? (
           <button
-            aria-label={`${label} control`}
-            className="group flex min-h-16 flex-col items-center justify-center gap-1 border border-primary/25 bg-primary/5 px-1 py-2 font-mono text-[0.64rem] uppercase tracking-[0.08em] text-white shadow-[inset_0_0_18px_rgba(0,255,102,0.04)] transition hover:border-primary active:scale-[0.97] active:bg-primary/20"
-            key={label}
-            onPointerDown={() => pressVirtualKey(code, "keydown")}
-            onPointerCancel={() => pressVirtualKey(code, "keyup")}
-            onPointerLeave={() => pressVirtualKey(code, "keyup")}
-            onPointerUp={() => pressVirtualKey(code, "keyup")}
+            aria-label="Exit game mode"
+            className="mobile-game-exit absolute right-3 top-3 z-30 grid h-10 w-10 place-items-center border border-white/25 bg-black/55 text-white shadow-[0_0_22px_rgba(0,0,0,0.35)] backdrop-blur transition hover:border-primary hover:text-primary"
+            onClick={exitGameMode}
             type="button"
           >
-            <span className="grid h-7 w-7 place-items-center border border-primary/20 bg-black/50 text-primary group-active:bg-primary group-active:text-black">
-              <Icon className="h-4 w-4" />
-            </span>
-            <span className="text-white">{label}</span>
-            <span className="text-[0.58rem] text-muted-foreground">{help} · {key}</span>
+            <X className="h-5 w-5" />
           </button>
-          ))}
+        ) : null}
+        <div className="mobile-gamepad pointer-events-none absolute inset-x-0 bottom-0 z-20 px-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <div className="pointer-events-auto grid grid-cols-[1fr_auto_1fr] items-end gap-3">
+            <div className="grid max-w-36 grid-cols-2 gap-2">
+              {mobileControls.slice(0, 2).map(({ label, key, code, icon: Icon, help }) => (
+              <button
+                aria-label={`${label} control`}
+                className="group grid h-16 place-items-center border border-primary/35 bg-black/60 font-mono text-[0.58rem] uppercase tracking-[0.08em] text-white shadow-[0_0_24px_rgba(0,255,102,0.12),inset_0_0_18px_rgba(0,255,102,0.08)] backdrop-blur transition active:scale-[0.94] active:bg-primary/25"
+                key={label}
+                onPointerDown={() => pressVirtualKey(code, "keydown")}
+                onPointerCancel={() => pressVirtualKey(code, "keyup")}
+                onPointerLeave={() => pressVirtualKey(code, "keyup")}
+                onPointerUp={() => pressVirtualKey(code, "keyup")}
+                type="button"
+              >
+                <Icon className="h-5 w-5 text-primary group-active:text-white" />
+                <span>{label}</span>
+                <span className="text-[0.52rem] text-muted-foreground">{help} · {key}</span>
+              </button>
+              ))}
+            </div>
+            <div className="mb-1 hidden border border-primary/20 bg-black/55 px-3 py-1 font-mono text-[0.58rem] uppercase tracking-[0.14em] text-primary shadow-[0_0_20px_rgba(0,255,102,0.14)] backdrop-blur min-[520px]:block">
+              Touch controls
+            </div>
+            <div className="ml-auto grid max-w-52 grid-cols-3 gap-2">
+              {mobileControls.slice(2).map(({ label, key, code, icon: Icon, help }) => (
+              <button
+                aria-label={`${label} control`}
+                className="group grid h-16 place-items-center border border-cyan-300/35 bg-black/60 font-mono text-[0.56rem] uppercase tracking-[0.08em] text-white shadow-[0_0_24px_rgba(51,204,255,0.12),inset_0_0_18px_rgba(51,204,255,0.08)] backdrop-blur transition active:scale-[0.94] active:bg-cyan-300/20"
+                key={label}
+                onPointerDown={() => pressVirtualKey(code, "keydown")}
+                onPointerCancel={() => pressVirtualKey(code, "keyup")}
+                onPointerLeave={() => pressVirtualKey(code, "keyup")}
+                onPointerUp={() => pressVirtualKey(code, "keyup")}
+                type="button"
+              >
+                <Icon className="h-5 w-5 text-cyan-200 group-active:text-white" />
+                <span>{label}</span>
+                <span className="text-[0.52rem] text-muted-foreground">{help} · {key}</span>
+              </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
-      <div ref={hostRef} className="min-h-[320px] bg-black" />
       <div className="hidden border-t border-primary/15 bg-black/35 p-3 md:block">
         <div className="mb-3 flex items-center gap-2 font-mono text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">
           <Keyboard className="h-3.5 w-3.5 text-primary" />

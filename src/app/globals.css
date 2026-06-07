@@ -124,3 +124,108 @@ body {
   max-width: 100%;
   height: auto;
 }
+
+.shadow-lab-shell:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  border: 0;
+  background: #000;
+}
+
+.shadow-lab-shell:fullscreen .game-chrome {
+  display: none;
+}
+
+.shadow-lab-shell:fullscreen .shadow-lab-stage {
+  width: 100vw;
+  height: 100vh;
+}
+
+.shadow-lab-shell:fullscreen .shadow-lab-canvas-host {
+  width: 100vw;
+  height: 100vh;
+  min-height: 100vh;
+}
+
+.shadow-lab-shell:fullscreen .shadow-lab-canvas-host canvas {
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+.shadow-lab-shell .mobile-gamepad {
+  display: none;
+}
+
+@media (max-width: 1180px), (pointer: coarse), (hover: none) {
+  .shadow-lab-shell .shadow-lab-canvas-host {
+    padding-bottom: 7.5rem;
+  }
+
+  .shadow-lab-shell .mobile-gamepad {
+    display: block;
+  }
+}
+
+.shadow-lab-shell:fullscreen .mobile-gamepad {
+  display: block;
+  position: absolute;
+}
+
+@media (max-width: 1180px), (pointer: coarse), (hover: none) {
+  .shadow-lab-shell.shadow-lab-playing:not(:fullscreen) {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    width: 100vw;
+    height: 100vh;
+    border: 0;
+    background: #000;
+  }
+
+  .shadow-lab-shell.shadow-lab-playing:not(:fullscreen) .game-chrome {
+    display: none;
+  }
+
+  .shadow-lab-shell.shadow-lab-playing:not(:fullscreen) .shadow-lab-stage,
+  .shadow-lab-shell.shadow-lab-playing:not(:fullscreen) .shadow-lab-canvas-host {
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+    padding-bottom: 0;
+  }
+
+  .shadow-lab-shell.shadow-lab-playing:not(:fullscreen) .shadow-lab-canvas-host canvas {
+    width: 100vw !important;
+    height: 100vh !important;
+  }
+
+  .shadow-lab-shell:fullscreen .shadow-lab-canvas-host {
+    padding-bottom: 0;
+  }
+
+  .shadow-lab-shell.shadow-lab-playing:not(:fullscreen) .mobile-gamepad {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+  }
+}
+
+@media (max-width: 767px) and (orientation: portrait) {
+  .shadow-lab-shell:fullscreen::before {
+    content: "Rotate your phone for full Shadow Lab mode";
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    padding: 2rem;
+    background: rgba(0, 0, 0, 0.82);
+    color: #7cff9d;
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+}
