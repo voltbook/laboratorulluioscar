@@ -14,6 +14,7 @@ type LevelData = {
   drones: Array<[number, number]>;
   lasers: Array<[number, number]>;
   orbs: Array<[number, number]>;
+  healthPacks: Array<[number, number]>;
   goal: [number, number];
   boss?: [number, number];
   bossHp?: number;
@@ -31,6 +32,7 @@ const levelTemplates: Array<Omit<LevelData, "name" | "objective" | "difficulty" 
     drones: [],
     lasers: [],
     orbs: [[230, 385], [490, 315], [750, 245]],
+    healthPacks: [],
     goal: [850, 230],
   },
   {
@@ -43,6 +45,7 @@ const levelTemplates: Array<Omit<LevelData, "name" | "objective" | "difficulty" 
     drones: [[650, 230]],
     lasers: [],
     orbs: [[165, 395], [395, 325], [635, 275], [820, 205]],
+    healthPacks: [],
     goal: [870, 190],
   },
   {
@@ -55,6 +58,7 @@ const levelTemplates: Array<Omit<LevelData, "name" | "objective" | "difficulty" 
     drones: [],
     lasers: [[610, 360]],
     orbs: [[210, 415], [410, 355], [600, 295], [790, 395]],
+    healthPacks: [[180, 410]],
     goal: [860, 380],
   },
   {
@@ -67,6 +71,7 @@ const levelTemplates: Array<Omit<LevelData, "name" | "objective" | "difficulty" 
     drones: [[260, 340]],
     lasers: [[560, 430]],
     orbs: [[180, 420], [430, 365], [665, 310], [810, 225]],
+    healthPacks: [[735, 225]],
     goal: [875, 210],
   },
   {
@@ -79,6 +84,7 @@ const levelTemplates: Array<Omit<LevelData, "name" | "objective" | "difficulty" 
     drones: [[600, 185]],
     lasers: [[250, 455], [710, 250]],
     orbs: [[165, 395], [365, 315], [575, 245], [775, 175]],
+    healthPacks: [[530, 245]],
     goal: [850, 160],
   },
 ];
@@ -93,12 +99,14 @@ const levels: LevelData[] = Array.from({ length: 50 }, (_, index) => {
   const extraEnemies: Array<[number, number, EnemyType]> = [];
   const extraDrones: Array<[number, number]> = [];
   const extraLasers: Array<[number, number]> = [];
+  const extraHealthPacks: Array<[number, number]> = [];
 
   if (tier >= 1) extraEnemies.push([250 + drift, 480 - ((index % 4) * 42), index % 2 ? "bot" : "spider"]);
   if (tier >= 2) extraDrones.push([760 - drift, 185 + ((index % 3) * 25)]);
   if (tier >= 4) extraEnemies.push([610 - drift, 302, tier > 6 ? "brute" : "spider"]);
   if (tier >= 5) extraLasers.push([340 + drift, 430 - ((index % 2) * 72)]);
   if (tier >= 7) extraDrones.push([410 + drift, 150]);
+  if (levelNumber % 4 === 0 || isBoss) extraHealthPacks.push([150 + ((tier * 67) % 520), 365 - ((index % 3) * 34)]);
 
   return {
     ...template,
@@ -108,6 +116,7 @@ const levels: LevelData[] = Array.from({ length: 50 }, (_, index) => {
     enemies: [...template.enemies, ...extraEnemies],
     drones: [...template.drones, ...extraDrones],
     lasers: [...template.lasers, ...extraLasers],
+    healthPacks: [...template.healthPacks, ...extraHealthPacks],
     boss: isBoss ? [isFinalBoss ? 805 : 790, isFinalBoss ? 145 : 170] : undefined,
     bossHp: isBoss ? (isFinalBoss ? 42 : 10 + tier * 3) : undefined,
     difficulty: 1 + tier * 0.18,
@@ -147,6 +156,7 @@ export function OliverShadowLabGame() {
         enemyProjectiles!: Phaser.Physics.Arcade.Group;
         lasers!: Phaser.Physics.Arcade.StaticGroup;
         orbs!: Phaser.Physics.Arcade.StaticGroup;
+        healthPacks!: Phaser.Physics.Arcade.StaticGroup;
         goal!: Phaser.GameObjects.GameObject;
         levelIndex = 0;
         score = 0;
@@ -166,6 +176,7 @@ export function OliverShadowLabGame() {
         bossBarBg?: Phaser.GameObjects.Rectangle;
         bossBarFill?: Phaser.GameObjects.Rectangle;
         bossLabel?: Phaser.GameObjects.Text;
+        transitioning = false;
 
         constructor() {
           super("shadow-lab");
@@ -207,7 +218,9 @@ export function OliverShadowLabGame() {
           this.createGeneratedTextures();
           this.createPlayerAnimations();
           this.createEnemyAnimations();
-          const levelFromHash = Number(window.location.hash.match(/level-(\d+)/)?.[1] ?? 1) - 1;
+          const hashMatch = window.location.hash.match(/level-(\d+)/);
+          const savedLevel = this.getSavedLevelIndex();
+          const levelFromHash = hashMatch ? Number(hashMatch[1]) - 1 : savedLevel;
           this.createLevel(Math.min(Math.max(levelFromHash, 0), levels.length - 1));
           this.input.keyboard!.on("keydown-R", () => this.createLevel(this.levelIndex));
           this.input.keyboard!.on("keydown-N", () => this.createLevel((this.levelIndex + 1) % levels.length));
@@ -350,9 +363,18 @@ export function OliverShadowLabGame() {
           muzzle.fillStyle(0x74f7ff, 0.8).fillTriangle(10, 12, 44, 5, 44, 19);
           muzzle.generateTexture("muzzle-flash", 48, 24);
           muzzle.destroy();
+
+          const health = this.add.graphics();
+          health.fillStyle(0x04110b, 0.92).fillRoundedRect(4, 4, 40, 40, 7);
+          health.lineStyle(3, 0x00ff66, 1).strokeRoundedRect(4, 4, 40, 40, 7);
+          health.fillStyle(0x7cff9d, 1).fillRoundedRect(20, 11, 8, 26, 2).fillRoundedRect(11, 20, 26, 8, 2);
+          health.lineStyle(2, 0xffffff, 0.75).strokeCircle(24, 24, 16);
+          health.generateTexture("health-core", 48, 48);
+          health.destroy();
         }
 
         createLevel(index: number) {
+          this.transitioning = false;
           this.levelIndex = index;
           this.children.removeAll();
           this.physics.world.colliders.destroy();
@@ -407,6 +429,13 @@ export function OliverShadowLabGame() {
             const orb = this.physics.add.staticSprite(Number(x), Number(y), "energy-orb").setDisplaySize(28, 28);
             this.tweens.add({ targets: orb, y: Number(y) - 8, duration: 900, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
             this.orbs.add(orb);
+          });
+
+          this.healthPacks = this.physics.add.staticGroup();
+          level.healthPacks.forEach(([x, y]) => {
+            const pack = this.physics.add.staticSprite(Number(x), Number(y), "health-core").setDisplaySize(30, 30);
+            this.tweens.add({ targets: pack, y: Number(y) - 6, duration: 1050, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+            this.healthPacks.add(pack);
           });
 
           if ("boss" in level && level.boss) {
@@ -468,7 +497,24 @@ export function OliverShadowLabGame() {
             this.playTone("pickup");
             this.flashMessage("+18 energy");
           });
+          this.physics.add.overlap(this.player, this.healthPacks, (_, pack) => {
+            const healthPack = pack as Phaser.GameObjects.Sprite;
+            const packX = healthPack.x;
+            const packY = healthPack.y;
+            healthPack.destroy();
+            if (this.hp < 3) {
+              this.hp += 1;
+              this.flashMessage("+1 health restored");
+            } else {
+              this.energy = Math.min(100, this.energy + 22);
+              this.flashMessage("Health full · +22 energy");
+            }
+            this.score += 12;
+            this.spawnCollectBurst(packX, packY);
+            this.playTone("pickup");
+          });
           this.physics.add.overlap(this.player, this.goal, () => {
+            if (this.transitioning) return;
             if (this.bossIsAlive()) {
               this.flashMessage("Defeat the guardian to unlock EXIT");
               return;
@@ -621,9 +667,9 @@ export function OliverShadowLabGame() {
             });
         }
 
-        fireEnemyBolt(source: Phaser.GameObjects.Sprite, speed = 225) {
+        fireEnemyBolt(source: Phaser.GameObjects.Sprite, speed = 225, angleOffset = 0) {
           if (!this.player?.active) return;
-          const angle = Phaser.Math.Angle.Between(source.x, source.y, this.player.x, this.player.y);
+          const angle = Phaser.Math.Angle.Between(source.x, source.y, this.player.x, this.player.y) + angleOffset;
           const bolt = this.physics.add.sprite(source.x, source.y, "enemy-bolt").setDisplaySize(26, 26).setDepth(4);
           bolt.body.allowGravity = false;
           this.physics.velocityFromRotation(angle, speed, bolt.body.velocity);
@@ -633,7 +679,18 @@ export function OliverShadowLabGame() {
           this.time.delayedCall(2200, () => bolt.destroy());
         }
 
+        fireEnemySpread(source: Phaser.GameObjects.Sprite, count: number, speed: number) {
+          const center = (count - 1) / 2;
+          for (let index = 0; index < count; index += 1) {
+            this.time.delayedCall(index * 55, () => {
+              if (!source.active) return;
+              this.fireEnemyBolt(source, speed, (index - center) * 0.18);
+            });
+          }
+        }
+
         update() {
+          if (this.transitioning) return;
           const body = this.player.body;
           const left = this.cursors.left.isDown || this.wasd.A.isDown;
           const right = this.cursors.right.isDown || this.wasd.D.isDown;
@@ -673,9 +730,16 @@ export function OliverShadowLabGame() {
               obj.y = 170 + Math.sin(this.time.now / 450) * 8;
               obj.setFlipX(this.player.x < obj.x);
               if (this.time.now > Number(obj.getData("nextShot") ?? 0)) {
-                obj.setData("nextShot", this.time.now + Math.max(620, 1250 - this.levelIndex * 12));
+                const isFinal = this.levelIndex === levels.length - 1;
+                const spreadCount = isFinal ? 5 : this.levelIndex >= 24 ? 3 : 1;
+                obj.setData("nextShot", this.time.now + Math.max(isFinal ? 520 : 620, 1250 - this.levelIndex * 12));
                 obj.play("ai-core-laser", true);
-                this.fireEnemyBolt(obj, 270 + this.levelIndex * 3);
+                this.fireEnemySpread(obj, spreadCount, 270 + this.levelIndex * 3);
+                if (isFinal) {
+                  this.cameras.main.shake(120, 0.004);
+                  const pulse = this.add.rectangle(obj.x, obj.y, 210, 210, 0xff40ff, 0.05).setDepth(2);
+                  this.tweens.add({ targets: pulse, alpha: 0, scale: 1.35, duration: 380, ease: "Quad.easeOut", onComplete: () => pulse.destroy() });
+                }
                 this.time.delayedCall(420, () => {
                   if (obj.active) obj.play("ai-core-idle", true);
                 });
@@ -897,6 +961,7 @@ export function OliverShadowLabGame() {
         }
 
         damage(reason: string) {
+          if (this.transitioning) return;
           if (this.invulnerableUntil > this.time.now) return;
           this.hp -= 1;
           this.invulnerableUntil = this.time.now + 1100;
@@ -906,9 +971,12 @@ export function OliverShadowLabGame() {
           this.player.setTint(0xff3b6b);
           this.time.delayedCall(260, () => this.player.clearTint());
           if (this.hp <= 0) {
-            this.hp = 3;
-            this.score = Math.max(0, this.score - 30);
-            this.createLevel(this.levelIndex);
+            this.player.play("oliver-death", true);
+            this.showStatusOverlay("SYSTEM FAILURE", "Restarting current map", 920, () => {
+              this.hp = 3;
+              this.score = Math.max(0, this.score - 30);
+              this.createLevel(this.levelIndex);
+            });
           } else {
             this.player.setPosition(70, 450);
             this.player.body.setVelocity(0, 0);
@@ -916,22 +984,88 @@ export function OliverShadowLabGame() {
         }
 
         nextLevel() {
+          if (this.transitioning) return;
           if (this.levelIndex >= levels.length - 1) {
-            this.messageText.setText("WORLD 1 CORE OFFLINE · next world locked for expansion");
             this.score += 100;
-            this.createLevel(0);
+            this.saveProgress(0);
+            this.saveBestScore();
+            this.playTone("clear");
+            this.showStatusOverlay("WORLD 1 CLEAR", "Core offline · next world locked for expansion", 1300, () => this.createLevel(0));
             return;
           }
+          const nextIndex = this.levelIndex + 1;
           this.score += 50;
+          this.saveProgress(nextIndex);
+          this.saveBestScore();
           this.playTone("clear");
-          this.createLevel(this.levelIndex + 1);
+          this.showStatusOverlay("MISSION CLEAR", `Entering level ${nextIndex + 1}`, 820, () => this.createLevel(nextIndex));
         }
 
         updateHud() {
           const energyBlocks = Math.round(this.energy / 20);
           const powerReady = this.energy >= 38 && this.time.now >= this.specialCooldownUntil ? "READY" : "CHARGE";
-          this.hudText?.setText(`HP ${"■".repeat(this.hp)}${"□".repeat(3 - this.hp)} · EN ${"◆".repeat(energyBlocks)}${"◇".repeat(5 - energyBlocks)} · XP ${this.score} · J plasma · K power ${powerReady}`);
+          this.hudText?.setText(`HP ${"■".repeat(this.hp)}${"□".repeat(3 - this.hp)} · EN ${"◆".repeat(energyBlocks)}${"◇".repeat(5 - energyBlocks)} · XP ${this.score} · BEST ${this.getBestScore()} · J plasma · K power ${powerReady}`);
           this.updateBossHud();
+        }
+
+        showStatusOverlay(title: string, subtitle: string, duration: number, onComplete: () => void) {
+          this.transitioning = true;
+          this.player?.body?.setVelocity(0, 0);
+          const overlay = this.add.container(480, 280).setScrollFactor(0).setDepth(80);
+          const panel = this.add.rectangle(0, 0, 520, 190, 0x020403, 0.88).setStrokeStyle(2, 0x00ff66, 0.72);
+          const glow = this.add.rectangle(0, 0, 560, 230, 0x00ff66, 0.045);
+          const titleText = this.add.text(0, -38, title, {
+            fontFamily: "monospace",
+            fontSize: "30px",
+            color: "#ffffff",
+          }).setOrigin(0.5);
+          const subtitleText = this.add.text(0, 20, subtitle, {
+            fontFamily: "monospace",
+            fontSize: "14px",
+            color: "#9eeeb5",
+          }).setOrigin(0.5);
+          const scan = this.add.rectangle(-230, 66, 80, 3, 0x74f7ff, 0.8);
+          overlay.add([glow, panel, titleText, subtitleText, scan]);
+          this.tweens.add({ targets: scan, x: 230, duration: duration - 150, ease: "Cubic.easeInOut" });
+          this.time.delayedCall(duration, () => {
+            overlay.destroy();
+            onComplete();
+          });
+        }
+
+        getSavedLevelIndex() {
+          try {
+            const savedLevel = Number(window.localStorage.getItem("oliver-shadow-lab-level") ?? 1) - 1;
+            return Number.isFinite(savedLevel) ? savedLevel : 0;
+          } catch {
+            return 0;
+          }
+        }
+
+        saveProgress(nextIndex: number) {
+          try {
+            window.localStorage.setItem("oliver-shadow-lab-level", String(nextIndex + 1));
+          } catch {
+            // Local storage can be unavailable in restricted browser modes.
+          }
+        }
+
+        getBestScore() {
+          try {
+            const bestScore = Number(window.localStorage.getItem("oliver-shadow-lab-best") ?? 0);
+            return Number.isFinite(bestScore) ? bestScore : 0;
+          } catch {
+            return 0;
+          }
+        }
+
+        saveBestScore() {
+          try {
+            const bestScore = Math.max(this.getBestScore(), this.score);
+            window.localStorage.setItem("oliver-shadow-lab-best", String(bestScore));
+          } catch {
+            // Local storage can be unavailable in restricted browser modes.
+          }
         }
 
         updatePlayerAnimation(left: boolean, right: boolean) {
