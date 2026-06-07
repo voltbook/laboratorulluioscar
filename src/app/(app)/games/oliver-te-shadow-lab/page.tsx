@@ -4,11 +4,11 @@ import { OliverShadowLabGame } from "@/components/oliver-shadow-lab-game";
 import { OliverShadowLabPlayButton } from "@/components/oliver-shadow-lab-play-button";
 
 const levels = [
-  ["Level 1 — Laboratory Escape", "Tutorial jumps, small robots and energy doors."],
-  ["Level 2 — Dark City", "Rooftops, drones and moving platform routes."],
-  ["Level 3 — Underground Tunnels", "Traps, laser beams and spider bots."],
-  ["Level 4 — Factory of Shadows", "Conveyors, robotic arms and a mini boss."],
-  ["Level 5 — Central Tower", "Final AI Core boss encounter."],
+  ["Maps 1-5 — Laboratory Sector", "Tutorial flow, energy orbs, first guardian boss."],
+  ["Maps 6-15 — Neon City Sector", "More drones, tighter jumps, faster enemy fire."],
+  ["Maps 16-30 — Tunnel & Factory Sector", "Lasers, spider bots, brutes and denser routes."],
+  ["Maps 31-45 — Central Tower Sector", "Heavy patrols, stacked hazards and stronger guardians."],
+  ["Map 50 — World 1 Core Finale", "Final AI Core Overlord encounter before the next world."],
 ];
 
 const achievements = [
@@ -17,6 +17,7 @@ const achievements = [
   "Drone Dodger",
   "Factory Survivor",
   "AI Core Shutdown",
+  "World 1 Clear",
   "No Damage Run",
 ];
 
@@ -41,10 +42,10 @@ export default function OliverShadowLabPage() {
           </div>
           <h1 className="font-mono text-4xl uppercase tracking-[0.12em] text-white md:text-6xl">Oliver Te: Shadow Lab</h1>
           <p className="mt-5 text-lg leading-8 text-muted-foreground">
-            Oliver accidentally enters a secret laboratory where AI experiments have escaped control. Cross the dark city, underground tunnels, shadow factory and central tower to stop the AI Core.
+            Oliver accidentally enters a secret laboratory where AI experiments have escaped control. Cross 50 escalating maps, defeat a guardian every 5 maps, and shut down the World 1 Core.
           </p>
           <div className="mt-6 flex flex-wrap gap-2">
-            {["Retro platformer", "Phaser 3", "Educational action", "AI laboratory", "5 levels"].map((tag) => <span className="lab-badge" key={tag}>{tag}</span>)}
+            {["Retro platformer", "Phaser 3", "Educational action", "50 maps", "Boss every 5 maps"].map((tag) => <span className="lab-badge" key={tag}>{tag}</span>)}
           </div>
           <OliverShadowLabPlayButton />
         </div>
@@ -69,7 +70,7 @@ export default function OliverShadowLabPage() {
         <div className="terminal-panel p-5">
           <h2 className="mb-4 font-mono text-2xl text-white">Asset Roadmap</h2>
           <div className="grid gap-2 text-sm text-muted-foreground">
-            {["Player animations: idle, run, jump, attack, hurt, death, victory", "Enemies: Shadow Imp, Cyber Drone, Spider Bot, Shadow Brute", "Boss: AI Core Guardian", "Collectibles: Energy Orb, Blue Crystal, Lab Badge, XP Chip", "UI: health, energy, pause, level complete, game over"].map((item) => (
+            {["Player animations: idle, run, jump, attack, hurt, death, victory", "Enemies: Shadow Imp, Cyber Drone, Spider Bot, Shadow Brute", "Boss: AI Core Guardian + World 1 Core Finale", "Procedural SFX: plasma, impact, pickup, damage, clear", "UI/VFX: health, energy, pause, level complete, hit sparks"].map((item) => (
               <p className="flex gap-2" key={item}><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {item}</p>
             ))}
           </div>

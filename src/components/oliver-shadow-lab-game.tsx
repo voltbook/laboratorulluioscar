@@ -3,121 +3,116 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ArrowUp, Crosshair, Keyboard, Maximize2, Pause, Play, RotateCcw, X, Zap } from "lucide-react";
 
-const levels = [
+type EnemyType = "bot" | "spider" | "brute";
+type LevelData = {
+  name: string;
+  objective: string;
+  theme: number;
+  backgroundIndex: number;
+  platforms: Array<[number, number, number, number]>;
+  enemies: Array<[number, number, EnemyType]>;
+  drones: Array<[number, number]>;
+  lasers: Array<[number, number]>;
+  orbs: Array<[number, number]>;
+  goal: [number, number];
+  boss?: [number, number];
+  bossHp?: number;
+  difficulty: number;
+};
+
+const levelTemplates: Array<Omit<LevelData, "name" | "objective" | "difficulty" | "boss" | "bossHp"> & { title: string; objective: string }> = [
   {
-    name: "Level 1 — Laboratory Escape",
+    title: "Laboratory Escape",
+    objective: "Escape the lab · collect energy orbs · reach EXIT",
     theme: 0x06140b,
-    platforms: [
-      [0, 520, 960, 44],
-      [180, 420, 170, 24],
-      [430, 350, 170, 24],
-      [690, 280, 160, 24],
-    ],
+    backgroundIndex: 0,
+    platforms: [[0, 520, 960, 44], [180, 420, 170, 24], [430, 350, 170, 24], [690, 280, 160, 24]],
     enemies: [[540, 310, "bot"]],
     drones: [],
     lasers: [],
-    orbs: [
-      [230, 385],
-      [490, 315],
-      [750, 245],
-    ],
+    orbs: [[230, 385], [490, 315], [750, 245]],
     goal: [850, 230],
   },
   {
-    name: "Level 2 — Dark City",
+    title: "Dark City",
+    objective: "Cross rooftops · dodge drone fire · reach EXIT",
     theme: 0x070b1c,
-    platforms: [
-      [0, 520, 960, 44],
-      [120, 430, 140, 24],
-      [340, 360, 150, 24],
-      [570, 310, 170, 24],
-      [770, 240, 140, 24],
-    ],
+    backgroundIndex: 1,
+    platforms: [[0, 520, 960, 44], [120, 430, 140, 24], [340, 360, 150, 24], [570, 310, 170, 24], [770, 240, 140, 24]],
     enemies: [[420, 320, "bot"]],
     drones: [[650, 230]],
     lasers: [],
-    orbs: [
-      [165, 395],
-      [395, 325],
-      [635, 275],
-      [820, 205],
-    ],
+    orbs: [[165, 395], [395, 325], [635, 275], [820, 205]],
     goal: [870, 190],
   },
   {
-    name: "Level 3 — Underground Tunnels",
+    title: "Underground Tunnels",
+    objective: "Survive tunnel traps · shoot spider bots · reach EXIT",
     theme: 0x0a1110,
-    platforms: [
-      [0, 520, 960, 44],
-      [170, 450, 120, 24],
-      [360, 390, 140, 24],
-      [560, 330, 110, 24],
-      [730, 430, 160, 24],
-    ],
-    enemies: [
-      [420, 350, "spider"],
-      [780, 390, "spider"],
-    ],
+    backgroundIndex: 2,
+    platforms: [[0, 520, 960, 44], [170, 450, 120, 24], [360, 390, 140, 24], [560, 330, 110, 24], [730, 430, 160, 24]],
+    enemies: [[420, 350, "spider"], [780, 390, "spider"]],
     drones: [],
     lasers: [[610, 360]],
-    orbs: [
-      [210, 415],
-      [410, 355],
-      [600, 295],
-      [790, 395],
-    ],
+    orbs: [[210, 415], [410, 355], [600, 295], [790, 395]],
     goal: [860, 380],
   },
   {
-    name: "Level 4 — Factory of Shadows",
+    title: "Factory of Shadows",
+    objective: "Break through the factory · use Shadow Pulse on brutes",
     theme: 0x160b0f,
-    platforms: [
-      [0, 520, 960, 44],
-      [120, 455, 180, 22],
-      [370, 400, 160, 22],
-      [610, 345, 170, 22],
-      [760, 260, 140, 22],
-    ],
-    enemies: [
-      [460, 360, "bot"],
-      [690, 305, "brute"],
-    ],
+    backgroundIndex: 3,
+    platforms: [[0, 520, 960, 44], [120, 455, 180, 22], [370, 400, 160, 22], [610, 345, 170, 22], [760, 260, 140, 22]],
+    enemies: [[460, 360, "bot"], [690, 305, "brute"]],
     drones: [[260, 340]],
     lasers: [[560, 430]],
-    orbs: [
-      [180, 420],
-      [430, 365],
-      [665, 310],
-      [810, 225],
-    ],
+    orbs: [[180, 420], [430, 365], [665, 310], [810, 225]],
     goal: [875, 210],
   },
   {
-    name: "Level 5 — Central Tower",
+    title: "Central Tower",
+    objective: "Defeat the AI guardian · unlock the next sector",
     theme: 0x10051c,
-    platforms: [
-      [0, 520, 960, 44],
-      [110, 430, 160, 24],
-      [310, 350, 160, 24],
-      [520, 280, 160, 24],
-      [720, 210, 170, 24],
-    ],
+    backgroundIndex: 4,
+    platforms: [[0, 520, 960, 44], [110, 430, 160, 24], [310, 350, 160, 24], [520, 280, 160, 24], [720, 210, 170, 24]],
     enemies: [[390, 310, "brute"]],
     drones: [[600, 185]],
-    lasers: [
-      [250, 455],
-      [710, 250],
-    ],
-    orbs: [
-      [165, 395],
-      [365, 315],
-      [575, 245],
-      [775, 175],
-    ],
+    lasers: [[250, 455], [710, 250]],
+    orbs: [[165, 395], [365, 315], [575, 245], [775, 175]],
     goal: [850, 160],
-    boss: [790, 170],
   },
-] as const;
+];
+
+const levels: LevelData[] = Array.from({ length: 50 }, (_, index) => {
+  const levelNumber = index + 1;
+  const template = levelTemplates[index % levelTemplates.length];
+  const tier = Math.floor(index / 5);
+  const drift = (tier % 3) * 18;
+  const isBoss = levelNumber % 5 === 0;
+  const isFinalBoss = levelNumber === 50;
+  const extraEnemies: Array<[number, number, EnemyType]> = [];
+  const extraDrones: Array<[number, number]> = [];
+  const extraLasers: Array<[number, number]> = [];
+
+  if (tier >= 1) extraEnemies.push([250 + drift, 480 - ((index % 4) * 42), index % 2 ? "bot" : "spider"]);
+  if (tier >= 2) extraDrones.push([760 - drift, 185 + ((index % 3) * 25)]);
+  if (tier >= 4) extraEnemies.push([610 - drift, 302, tier > 6 ? "brute" : "spider"]);
+  if (tier >= 5) extraLasers.push([340 + drift, 430 - ((index % 2) * 72)]);
+  if (tier >= 7) extraDrones.push([410 + drift, 150]);
+
+  return {
+    ...template,
+    name: `Level ${levelNumber} — ${isFinalBoss ? "World 1 Core Finale" : template.title}`,
+    objective: isFinalBoss ? "Final World 1 boss · survive all attack waves · shut down the Core" : template.objective,
+    platforms: template.platforms.map(([x, y, w, h], platformIndex) => [x, Math.max(188, y - ((tier + platformIndex) % 3) * 10), w, h]),
+    enemies: [...template.enemies, ...extraEnemies],
+    drones: [...template.drones, ...extraDrones],
+    lasers: [...template.lasers, ...extraLasers],
+    boss: isBoss ? [isFinalBoss ? 805 : 790, isFinalBoss ? 145 : 170] : undefined,
+    bossHp: isBoss ? (isFinalBoss ? 42 : 10 + tier * 3) : undefined,
+    difficulty: 1 + tier * 0.18,
+  };
+});
 
 const levelBackgrounds = [
   "/games/oliver-te/backgrounds/level-01-lab-escape-bg.png",
@@ -125,14 +120,6 @@ const levelBackgrounds = [
   "/games/oliver-te/backgrounds/level-03-underground-tunnels-bg.png",
   "/games/oliver-te/backgrounds/level-04-shadow-factory-bg.png",
   "/games/oliver-te/backgrounds/level-05-tower-core-bg.png",
-] as const;
-
-const levelObjectives = [
-  "Escape the lab · collect 3 energy orbs · reach EXIT",
-  "Cross the rooftops · avoid drone fire · reach EXIT",
-  "Survive tunnel traps · shoot spider bots · reach EXIT",
-  "Break through the factory · use Shadow Pulse on brutes",
-  "Destroy the AI Core Guardian · dodge shadow blasts",
 ] as const;
 
 export function OliverShadowLabGame() {
@@ -175,6 +162,7 @@ export function OliverShadowLabGame() {
         hudText!: Phaser.GameObjects.Text;
         messageText!: Phaser.GameObjects.Text;
         titleCard!: Phaser.GameObjects.Container;
+        audioContext?: AudioContext;
         bossBarBg?: Phaser.GameObjects.Rectangle;
         bossBarFill?: Phaser.GameObjects.Rectangle;
         bossLabel?: Phaser.GameObjects.Text;
@@ -356,6 +344,12 @@ export function OliverShadowLabGame() {
           spark.lineStyle(2, 0xffb000, 0.9).lineBetween(24, 0, 24, 48).lineBetween(0, 24, 48, 24).lineBetween(8, 8, 40, 40).lineBetween(40, 8, 8, 40);
           spark.generateTexture("impact-spark", 48, 48);
           spark.destroy();
+
+          const muzzle = this.add.graphics();
+          muzzle.fillStyle(0xffffff, 1).fillTriangle(0, 12, 30, 0, 30, 24);
+          muzzle.fillStyle(0x74f7ff, 0.8).fillTriangle(10, 12, 44, 5, 44, 19);
+          muzzle.generateTexture("muzzle-flash", 48, 24);
+          muzzle.destroy();
         }
 
         createLevel(index: number) {
@@ -369,10 +363,11 @@ export function OliverShadowLabGame() {
           this.bossLabel = undefined;
 
           this.add.rectangle(480, 280, 960, 560, level.theme).setDepth(-10);
-          this.add.image(480, 280, `level-bg-${index}`).setDisplaySize(960, 560).setAlpha(0.92).setDepth(-9);
-          this.add.rectangle(480, 280, 960, 560, 0x000000, 0.32).setDepth(-8);
+          this.add.image(480, 280, `level-bg-${level.backgroundIndex}`).setDisplaySize(960, 560).setAlpha(0.92).setDepth(-9);
+          this.add.rectangle(480, 280, 960, 560, 0x000000, 0.26).setDepth(-8);
           this.add.grid(480, 280, 960, 560, 48, 48, 0x000000, 0, 0x00e5ff, 0.09).setDepth(-7);
           this.drawEnvironment(index);
+          this.drawAtmosphere(index);
           this.add.rectangle(480, 36, 900, 48, 0x000000, 0.58).setStrokeStyle(1, 0x00ff66, 0.35);
           this.add.rectangle(480, 528, 960, 64, 0x000000, 0.42).setStrokeStyle(1, 0x00ff66, 0.18);
 
@@ -416,13 +411,14 @@ export function OliverShadowLabGame() {
 
           if ("boss" in level && level.boss) {
             const [bossX, bossY] = level.boss;
-            const boss = this.add.sprite(Number(bossX), Number(bossY), "boss-ai-core-guardian", 0).setDisplaySize(150, 150);
+            const bossScale = index === levels.length - 1 ? 186 : 150;
+            const boss = this.add.sprite(Number(bossX), Number(bossY), "boss-ai-core-guardian", 0).setDisplaySize(bossScale, bossScale);
             boss.play("ai-core-idle");
-            boss.setData("hp", 10);
-            boss.setData("maxHp", 10);
+            boss.setData("hp", level.bossHp ?? 10);
+            boss.setData("maxHp", level.bossHp ?? 10);
             boss.setData("type", "boss");
             boss.setData("nextShot", this.time.now + 900);
-            this.add.text(Number(bossX) - 39, Number(bossY) - 72, "AI CORE", { fontFamily: "monospace", fontSize: "12px", color: "#ffb8ff" });
+            this.add.text(Number(bossX) - 39, Number(bossY) - 72, index === levels.length - 1 ? "WORLD CORE" : "AI CORE", { fontFamily: "monospace", fontSize: "12px", color: "#ffb8ff" });
             this.physics.add.existing(boss);
             const bossBody = boss.body as Phaser.Physics.Arcade.Body;
             bossBody.setSize(150, 150).setOffset(53, 64);
@@ -439,7 +435,7 @@ export function OliverShadowLabGame() {
 
           this.levelText = this.add.text(24, 20, level.name, { fontFamily: "monospace", fontSize: "18px", color: "#ffffff" }).setScrollFactor(0);
           this.hudText = this.add.text(24, 48, "", { fontFamily: "monospace", fontSize: "14px", color: "#00ff66" }).setScrollFactor(0);
-          this.messageText = this.add.text(480, 96, levelObjectives[index], {
+          this.messageText = this.add.text(480, 96, level.objective, {
             fontFamily: "monospace",
             fontSize: "13px",
             color: "#9eeeb5",
@@ -462,35 +458,47 @@ export function OliverShadowLabGame() {
             this.damage("Shadow blast");
           });
           this.physics.add.overlap(this.player, this.orbs, (_, orb) => {
-            (orb as Phaser.GameObjects.GameObject).destroy();
+            const collectedOrb = orb as Phaser.GameObjects.Sprite;
+            const orbX = collectedOrb.x;
+            const orbY = collectedOrb.y;
+            collectedOrb.destroy();
             this.score += 10;
             this.energy = Math.min(100, this.energy + 18);
+            this.spawnCollectBurst(orbX, orbY);
+            this.playTone("pickup");
             this.flashMessage("+18 energy");
           });
-          this.physics.add.overlap(this.player, this.goal, () => this.nextLevel());
+          this.physics.add.overlap(this.player, this.goal, () => {
+            if (this.bossIsAlive()) {
+              this.flashMessage("Defeat the guardian to unlock EXIT");
+              return;
+            }
+            this.nextLevel();
+          });
           this.physics.add.overlap(this.player, this.enemies, (_, enemy) => this.handleEnemy(enemy as Phaser.GameObjects.GameObject));
           this.physics.add.overlap(this.player, this.lasers, () => this.damage("Laser trap"));
           this.updateHud();
         }
 
         drawEnvironment(index: number) {
-          if (index === 0) {
+          const backgroundIndex = levels[index].backgroundIndex;
+          if (backgroundIndex === 0) {
             for (let x = 40; x < 920; x += 110) {
               this.add.rectangle(x, 190, 24, 180, 0x0d2115, 0.65).setStrokeStyle(1, 0x00ff66, 0.25);
               this.add.circle(x, 280, 8, 0x00ff66, 0.25);
             }
-          } else if (index === 1) {
+          } else if (backgroundIndex === 1) {
             for (let x = 20; x < 950; x += 95) {
               const h = 110 + ((x * 7) % 120);
               this.add.rectangle(x, 520 - h / 2, 70, h, 0x080b19, 0.95).setStrokeStyle(1, 0x33ccff, 0.25);
               this.add.rectangle(x + 12, 510 - h, 10, 24, 0xff40ff, 0.5);
             }
-          } else if (index === 2) {
+          } else if (backgroundIndex === 2) {
             for (let x = 40; x < 930; x += 120) {
               this.add.circle(x, 210, 44, 0x062018, 0.45).setStrokeStyle(2, 0x00ff66, 0.22);
               this.add.rectangle(x, 502, 80, 16, 0x00ff66, 0.09);
             }
-          } else if (index === 3) {
+          } else if (backgroundIndex === 3) {
             for (let x = 70; x < 920; x += 150) {
               this.add.rectangle(x, 250, 90, 210, 0x1a1010, 0.65).setStrokeStyle(1, 0xff6b35, 0.3);
               this.add.circle(x + 25, 180, 22, 0xff6b35, 0.12);
@@ -503,6 +511,27 @@ export function OliverShadowLabGame() {
           }
         }
 
+        drawAtmosphere(index: number) {
+          const tier = Math.floor(index / 5);
+          const accent = [0x00ff66, 0x33ccff, 0x9b5cff, 0xff6b35, 0xff40ff][levels[index].backgroundIndex];
+          for (let i = 0; i < 18; i += 1) {
+            const x = 35 + ((i * 83 + tier * 29) % 900);
+            const y = 80 + ((i * 47 + tier * 31) % 360);
+            const particle = this.add.circle(x, y, 1 + ((i + tier) % 3), accent, 0.15 + ((i % 4) * 0.04)).setDepth(-6);
+            this.tweens.add({ targets: particle, y: y - 18, alpha: 0.04, duration: 1800 + i * 90, yoyo: true, repeat: -1, ease: "Sine.easeInOut" });
+          }
+          for (let i = 0; i < Math.min(6, 2 + tier); i += 1) {
+            const x = 90 + ((i * 151 + tier * 43) % 790);
+            const y = 125 + ((i * 67) % 270);
+            this.add.rectangle(x, y, 88, 2, accent, 0.22).setDepth(-5);
+            this.add.rectangle(x + 42, y + 14, 2, 28, accent, 0.18).setDepth(-5);
+          }
+          if ((index + 1) % 5 === 0) {
+            this.add.circle(805, 145, 82 + tier * 3, accent, 0.08).setStrokeStyle(2, accent, 0.24).setDepth(-4);
+            this.add.circle(805, 145, 38 + tier * 2, 0xffffff, 0.035).setDepth(-4);
+          }
+        }
+
         spawnEnemy(x: number, y: number, type: string) {
           if (type === "bot") {
             const enemy = this.add.sprite(x, y, "enemy-shadow-imp", 8).setDisplaySize(58, 58);
@@ -510,8 +539,8 @@ export function OliverShadowLabGame() {
             const arcadeBody = enemy.body as Phaser.Physics.Arcade.Body;
             arcadeBody.setSize(52, 70).setOffset(38, 34);
             arcadeBody.setCollideWorldBounds(true);
-            arcadeBody.setVelocityX(-70);
-            enemy.setData("hp", 1);
+            arcadeBody.setVelocityX(-70 * levels[this.levelIndex].difficulty);
+            enemy.setData("hp", Math.ceil(levels[this.levelIndex].difficulty));
             enemy.setData("type", "imp");
             enemy.play("shadow-imp-walk");
             this.enemies.add(enemy);
@@ -523,8 +552,8 @@ export function OliverShadowLabGame() {
           const arcadeBody = enemy.body as Phaser.Physics.Arcade.Body;
           arcadeBody.setSize(type === "brute" ? 74 : 58, type === "brute" ? 82 : 42).setOffset(type === "brute" ? 28 : 35, type === "brute" ? 30 : 52);
           arcadeBody.setCollideWorldBounds(true);
-          arcadeBody.setVelocityX(type === "brute" ? -50 : -105);
-          enemy.setData("hp", type === "brute" ? 4 : 2);
+          arcadeBody.setVelocityX((type === "brute" ? -50 : -105) * levels[this.levelIndex].difficulty);
+          enemy.setData("hp", Math.ceil((type === "brute" ? 4 : 2) * levels[this.levelIndex].difficulty));
           enemy.setData("type", type);
           enemy.play(type === "brute" ? "shadow-brute-walk" : "spider-bot-crawl");
           this.enemies.add(enemy);
@@ -536,18 +565,19 @@ export function OliverShadowLabGame() {
           const body = drone.body as Phaser.Physics.Arcade.Body;
           body.allowGravity = false;
           body.setSize(58, 42).setOffset(35, 42);
-          body.setVelocityX(-80);
-          drone.setData("hp", 2);
+          body.setVelocityX(-80 * levels[this.levelIndex].difficulty);
+          drone.setData("hp", Math.ceil(2 * levels[this.levelIndex].difficulty));
           drone.setData("type", "drone");
-          drone.setData("nextShot", this.time.now + Phaser.Math.Between(700, 1600));
+          drone.setData("nextShot", this.time.now + Phaser.Math.Between(520, 1300));
           drone.play("cyber-drone-fly");
           this.drones.add(drone);
           this.enemies.add(drone);
         }
 
         createBossHud() {
+          const isFinal = this.levelIndex === levels.length - 1;
           this.bossLabel = this.add
-            .text(300, 66, "AI CORE GUARDIAN", {
+            .text(300, 66, isFinal ? "WORLD 1 CORE OVERLORD" : "AI CORE GUARDIAN", {
               fontFamily: "monospace",
               fontSize: "12px",
               color: "#ffb8ff",
@@ -582,6 +612,15 @@ export function OliverShadowLabGame() {
           this.bossBarFill.scaleX = hp / maxHp;
         }
 
+        bossIsAlive() {
+          return this.enemies
+            .getChildren()
+            .some((child) => {
+              const enemy = child as Phaser.GameObjects.Sprite;
+              return enemy.active && enemy.getData("type") === "boss";
+            });
+        }
+
         fireEnemyBolt(source: Phaser.GameObjects.Sprite, speed = 225) {
           if (!this.player?.active) return;
           const angle = Phaser.Math.Angle.Between(source.x, source.y, this.player.x, this.player.y);
@@ -589,6 +628,7 @@ export function OliverShadowLabGame() {
           bolt.body.allowGravity = false;
           this.physics.velocityFromRotation(angle, speed, bolt.body.velocity);
           this.enemyProjectiles.add(bolt);
+          this.playTone("enemy-shot");
           this.tweens.add({ targets: bolt, alpha: 0.55, scale: 1.18, duration: 110, yoyo: true, repeat: 8 });
           this.time.delayedCall(2200, () => bolt.destroy());
         }
@@ -633,9 +673,9 @@ export function OliverShadowLabGame() {
               obj.y = 170 + Math.sin(this.time.now / 450) * 8;
               obj.setFlipX(this.player.x < obj.x);
               if (this.time.now > Number(obj.getData("nextShot") ?? 0)) {
-                obj.setData("nextShot", this.time.now + 1250);
+                obj.setData("nextShot", this.time.now + Math.max(620, 1250 - this.levelIndex * 12));
                 obj.play("ai-core-laser", true);
-                this.fireEnemyBolt(obj, 270);
+                this.fireEnemyBolt(obj, 270 + this.levelIndex * 3);
                 this.time.delayedCall(420, () => {
                   if (obj.active) obj.play("ai-core-idle", true);
                 });
@@ -654,9 +694,9 @@ export function OliverShadowLabGame() {
             obj.setFlipX(this.player.x < obj.x);
             obj.y += Math.sin(this.time.now / 250) * 0.45;
             if (this.time.now > Number(obj.getData("nextShot") ?? 0)) {
-              obj.setData("nextShot", this.time.now + Phaser.Math.Between(1500, 2500));
+              obj.setData("nextShot", this.time.now + Phaser.Math.Between(Math.max(760, 1500 - this.levelIndex * 12), Math.max(1180, 2500 - this.levelIndex * 18)));
               obj.play("cyber-drone-shoot", true);
-              this.fireEnemyBolt(obj, 205);
+              this.fireEnemyBolt(obj, 205 + this.levelIndex * 2);
               this.time.delayedCall(360, () => {
                 if (obj.active) obj.play("cyber-drone-fly", true);
               });
@@ -693,6 +733,8 @@ export function OliverShadowLabGame() {
           projectile.body.setVelocityY(0);
           projectile.body.setSize(52, 16);
           this.projectiles.add(projectile);
+          this.spawnMuzzleFlash(this.player.x + shotDirection * 38, this.player.y + 2, shotDirection);
+          this.playTone("plasma");
           this.tweens.add({ targets: projectile, alpha: 0.72, duration: 70, yoyo: true, repeat: 6 });
           this.time.delayedCall(900, () => projectile.destroy());
         }
@@ -720,6 +762,7 @@ export function OliverShadowLabGame() {
           const wave = this.add.circle(this.player.x, this.player.y, 26, 0x74f7ff, 0.18).setStrokeStyle(3, 0x7c3aed, 0.95).setDepth(3);
           this.tweens.add({ targets: wave, scale: 7, alpha: 0, duration: 420, ease: "Cubic.easeOut", onComplete: () => wave.destroy() });
           this.cameras.main.shake(120, 0.006);
+          this.playTone("power");
           this.enemies.getChildren().forEach((child) => {
             const enemy = child as Phaser.GameObjects.Sprite;
             const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
@@ -749,6 +792,7 @@ export function OliverShadowLabGame() {
         hitEnemyWithProjectile(projectile: Phaser.GameObjects.GameObject, enemy: Phaser.GameObjects.GameObject) {
           const target = enemy as Phaser.GameObjects.Sprite;
           this.spawnSpark(target.x, target.y, 0xffb000);
+          this.playTone("impact");
           projectile.destroy();
           const hp = Number(target.getData("hp") ?? 1) - 1;
           target.setData("hp", hp);
@@ -756,7 +800,7 @@ export function OliverShadowLabGame() {
           this.time.delayedCall(90, () => target.clearTint());
           if (target.getData("type") === "boss") {
             target.play(hp > 4 ? "ai-core-idle" : "ai-core-laser", true);
-            this.flashMessage(`AI Core integrity ${Math.max(0, hp)}/10`);
+            this.flashMessage(`AI Core integrity ${Math.max(0, hp)}/${Number(target.getData("maxHp") ?? 10)}`);
             this.updateBossHud();
           }
           if (hp <= 0) {
@@ -775,6 +819,58 @@ export function OliverShadowLabGame() {
         spawnSpark(x: number, y: number, tint: number) {
           const spark = this.add.sprite(x, y, "impact-spark").setTint(tint).setDisplaySize(34, 34).setDepth(5);
           this.tweens.add({ targets: spark, scale: 1.8, alpha: 0, duration: 260, ease: "Quad.easeOut", onComplete: () => spark.destroy() });
+        }
+
+        spawnMuzzleFlash(x: number, y: number, direction: number) {
+          const flash = this.add.sprite(x, y, "muzzle-flash").setFlipX(direction < 0).setDepth(6);
+          this.tweens.add({ targets: flash, alpha: 0, scaleX: 1.8, scaleY: 1.25, duration: 110, ease: "Quad.easeOut", onComplete: () => flash.destroy() });
+        }
+
+        spawnCollectBurst(x: number, y: number) {
+          for (let i = 0; i < 8; i += 1) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const spark = this.add.circle(x, y, 3, i % 2 ? 0x74f7ff : 0x00ff66, 0.9).setDepth(6);
+            this.tweens.add({
+              targets: spark,
+              x: x + Math.cos(angle) * 34,
+              y: y + Math.sin(angle) * 24,
+              alpha: 0,
+              duration: 360,
+              ease: "Cubic.easeOut",
+              onComplete: () => spark.destroy(),
+            });
+          }
+        }
+
+        playTone(kind: "plasma" | "enemy-shot" | "impact" | "pickup" | "damage" | "power" | "clear") {
+          try {
+            const AudioCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+            if (!AudioCtor) return;
+            this.audioContext ??= new AudioCtor();
+            const ctx = this.audioContext;
+            const oscillator = ctx.createOscillator();
+            const gain = ctx.createGain();
+            const settings = {
+              plasma: [520, 0.045, 0.055],
+              "enemy-shot": [180, 0.035, 0.04],
+              impact: [90, 0.05, 0.06],
+              pickup: [880, 0.04, 0.08],
+              damage: [70, 0.08, 0.08],
+              power: [140, 0.16, 0.12],
+              clear: [660, 0.18, 0.1],
+            }[kind];
+            oscillator.type = kind === "power" || kind === "damage" ? "sawtooth" : "triangle";
+            oscillator.frequency.setValueAtTime(settings[0], ctx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(Math.max(40, settings[0] * 1.9), ctx.currentTime + settings[1]);
+            gain.gain.setValueAtTime(settings[2], ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + settings[1] + 0.04);
+            oscillator.connect(gain);
+            gain.connect(ctx.destination);
+            oscillator.start();
+            oscillator.stop(ctx.currentTime + settings[1] + 0.05);
+          } catch {
+            // Browsers may block audio until the first direct user gesture.
+          }
         }
 
         flashMessage(text: string) {
@@ -805,6 +901,7 @@ export function OliverShadowLabGame() {
           this.hp -= 1;
           this.invulnerableUntil = this.time.now + 1100;
           this.messageText.setText(reason);
+          this.playTone("damage");
           this.player.play("oliver-hurt", true);
           this.player.setTint(0xff3b6b);
           this.time.delayedCall(260, () => this.player.clearTint());
@@ -820,12 +917,13 @@ export function OliverShadowLabGame() {
 
         nextLevel() {
           if (this.levelIndex >= levels.length - 1) {
-            this.messageText.setText("AI CORE OFFLINE · Shadow Lab complete!");
+            this.messageText.setText("WORLD 1 CORE OFFLINE · next world locked for expansion");
             this.score += 100;
             this.createLevel(0);
             return;
           }
           this.score += 50;
+          this.playTone("clear");
           this.createLevel(this.levelIndex + 1);
         }
 
